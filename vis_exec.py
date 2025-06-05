@@ -1,23 +1,8 @@
 import argparse
-import open3d as o3d
-import numpy as np
-import pdb
-import random
-import pdb
-
-import argparse
-import json
-import sys
-import os
-import pdb 
 import pickle
 import random
 
 import numpy as np
-from tqdm import tqdm
-import cv2
-from scipy.spatial.transform import Rotation as Rt
-
 import open3d as o3d
 
 # from datasets.visulization import get_arrow
@@ -201,8 +186,9 @@ def visualization_exec(args, result):
     view_ctl.set_up([0, -1, 0]) 
     view_ctl.set_zoom(0.5)  
     vis.update_renderer()
-    vis.poll_events()
-    vis.run()
+    # vis.poll_events()
+    # vis.run()
+    vis.capture_screen_image("franka_exec.png", do_render=True)
     vis.destroy_window()
 
 

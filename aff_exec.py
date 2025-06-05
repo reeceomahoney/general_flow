@@ -136,8 +136,8 @@ class KPSTExecutor(object):
     def segment_robot_body(self, image, robot_anchor, robot_anchor_label, vis_dir=None, commit=''):
         # robot_anchor: (N, 2), (h,w)-format, numpy
 
-        # robot_anchor = np.array([[935, 1042]])
-        # robot_anchor_label = np.ones(robot_anchor.shape[0]).astype(np.uint32)
+        robot_anchor = np.array([[935, 1042]])
+        robot_anchor_label = np.ones(robot_anchor.shape[0]).astype(np.uint32)
 
         if robot_anchor is None:
             robot_anchor = KPSTExecutor.display_and_capture_points(image, title='robot mask')
@@ -498,7 +498,7 @@ def exec_kpst_affordance_from_input_dir(exec_model, input_dir, desc,
     depth_image = numpy_depth       # (H, W), original, scale: mm
     rgb_image = numpy_image
 
-    # gripper_2d_pos = np.array([650, 959])
+    gripper_2d_pos = np.array([650, 959])
     if gripper_2d_pos is None:
         gripper_2d_pos_wh = KPSTExecutor.display_and_capture_points(rgb_image, title='gripper 2d position')
         gripper_2d_pos = np.array([gripper_2d_pos_wh[0, 1], gripper_2d_pos_wh[0, 0]]) # (w, h) --> (h, w)
@@ -555,7 +555,7 @@ if __name__ == "__main__":
     commit = ''
     vis_dir = args.save_dir
     exec_kpst_affordance_from_input_dir(exec_model, input_dir, desc, policy_radius=0.1, gripper_2d_pos=None, robot_anchor=None, vis_dir=vis_dir)
-    pdb.set_trace()
+    # pdb.set_trace()
 
 
 # CUDA_VISIBLE_DEVICES=0 python aff_exec.py --input_dir demo/input/safe_0_hand --desc open_Safe --pretrained_path log/kpst_hoi4d/ScaleGFlow-B/checkpoint/ckpt_best_train_scalegflow_b.pth

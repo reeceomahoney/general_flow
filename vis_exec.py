@@ -186,9 +186,9 @@ def visualization_exec(args, result):
     view_ctl.set_up([0, -1, 0]) 
     view_ctl.set_zoom(0.5)  
     vis.update_renderer()
-    # vis.poll_events()
-    # vis.run()
-    vis.capture_screen_image("franka_exec.png", do_render=True)
+    vis.poll_events()
+    vis.run()
+    # vis.capture_screen_image("franka_exec.png", do_render=True)
     vis.destroy_window()
 
 

@@ -501,7 +501,7 @@ def exec_kpst_affordance_from_input_dir(exec_model, input_dir, desc,
     gripper_2d_pos = np.array([650, 959])
     if gripper_2d_pos is None:
         gripper_2d_pos_wh = KPSTExecutor.display_and_capture_points(rgb_image, title='gripper 2d position')
-        gripper_2d_pos = np.array([gripper_2d_pos_wh[0, 1], gripper_2d_pos_wh[0, 0]]) # (w, h) --> (h, w)
+        gripper_2d_pos = np.array([int(gripper_2d_pos_wh[0, 1]), int(gripper_2d_pos_wh[0, 0])]) # (w, h) --> (h, w)
 
     exec_model.kpst_motion_execusion(rgb_image, depth_image, gripper_2d_pos, policy_radius=policy_radius, policy_env=policy_env, policy_kps_max=policy_kps_max,
                                      robot_anchor=robot_anchor, plan_step=plan_step, commit=commit, vis_dir=vis_dir, area_bound=area_bound)

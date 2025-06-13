@@ -144,3 +144,4 @@ cython_debug/
 
 logs/
 outputs/
+wandb/

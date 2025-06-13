@@ -37,23 +37,20 @@ class ConvActorCritic(nn.Module):
             # Input: (C, 64, 64)
             cnn_layers.extend(
                 [
-                    nn.Conv2d(image_shape[0], 32, kernel_size=5, stride=1, padding=2),
+                    nn.Conv2d(image_shape[0], 32, kernel_size=8, stride=4),
                     activation_fn,
-                    nn.MaxPool2d(kernel_size=2, stride=2),  # -> (32, 32, 32)
                 ]
             )
             cnn_layers.extend(
                 [
-                    nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+                    nn.Conv2d(32, 64, kernel_size=4, stride=2),
                     activation_fn,
-                    nn.MaxPool2d(kernel_size=2, stride=2),  # -> (64, 16, 16)
                 ]
             )
             cnn_layers.extend(
                 [
-                    nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+                    nn.Conv2d(64, 64, kernel_size=3, stride=1),
                     activation_fn,
-                    nn.MaxPool2d(kernel_size=2, stride=2),  # -> (64, 8, 8)
                 ]
             )
             cnn_layers.append(nn.Flatten())

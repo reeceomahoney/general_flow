@@ -1,5 +1,5 @@
 [project]
-name = "general-flow"
+name = "general_flow"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -51,7 +51,12 @@ dependencies = [
   "tifffile==2023.9.26",
   "multimethod>=2.0",
   "easydict>=1.13",
+  "hydra-core>=0.11.3",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.uv.sources]
 clip = { git = "https://github.com/openai/CLIP.git" }
@@ -72,3 +77,34 @@ explicit = true
 name = "nvidia"
 url = "https://pypi.nvidia.com"
 explicit = true
+
+[tool.ruff.lint]
+# select = ["E4", "E7", "E9", "F", "B", "I"]
+ignore = ["E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+  "isaaclab",
+  "isaaclab_assets",
+  "isaaclab_mimic",
+  "isaaclab_rl",
+  "isaaclab_tasks",
+]
+
+[tool.pyright]
+typeCheckingMode = "basic"
+pythonVersion = "3.10"
+pythonPlatform = "Linux"
+extraPaths = [
+  "IsaacLab/source/isaaclab",
+  "IsaacLab/source/isaaclab_assets",
+  "IsaacLab/source/isaaclab_mimic",
+  "IsaacLab/source/isaaclab_rl",
+  "IsaacLab/source/isaaclab_tasks",
+]
+
+reportMissingImports = "none"
+reportMissingModuleSource = "none"
+reportGeneralTypeIssues = "none"
+reportOptionalMemberAccess = "warning"
+reportPrivateUsage = "warning"

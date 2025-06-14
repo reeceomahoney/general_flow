@@ -22,8 +22,6 @@ from isaaclab.markers.config import FRAME_MARKER_CFG
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import FrameTransformerCfg, TiledCameraCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
-
-# from isaaclab.sensors.frame_transformer.frame_transformer_cfg import FrameTransformerCfg
 from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 from isaaclab.utils import configclass
@@ -113,7 +111,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
         offset=TiledCameraCfg.OffsetCfg(
             pos=(2.5, 0.0, 1.5), rot=(0.62, 0.34, 0.34, 0.62), convention="opengl"
         ),
-        data_types=["rgb"],
+        data_types=["rgb", "depth"],
         spawn=sim_utils.PinholeCameraCfg(
             focal_length=50.0,
             focus_distance=400.0,
@@ -123,6 +121,22 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
         width=64,
         height=64,
     )
+
+    # wrist_camera = TiledCameraCfg(
+    #     prim_path="{ENV_REGEX_NS}/Robot/panda_hand/Camera",
+    #     offset=TiledCameraCfg.OffsetCfg(
+    #         pos=(0.02, 0.0, 0.0), rot=(0.0, 0.0, 1.0, 0.0), convention="opengl"
+    #     ),
+    #     data_types=["rgb"],
+    #     spawn=sim_utils.PinholeCameraCfg(
+    #         focal_length=50.0,
+    #         focus_distance=400.0,
+    #         horizontal_aperture=20.955,
+    #         clipping_range=(0.1, 20.0),
+    #     ),
+    #     width=64,
+    #     height=64,
+    # )
 
 
 ##
@@ -183,7 +197,7 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for policy group."""
 
-        camera_rgb = ObsTerm(func=mdp.camera_rgb)
+        camera_rgbd = ObsTerm(func=mdp.camera_rgbd)
         joint_pos = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
         target_object_position = ObsTerm(

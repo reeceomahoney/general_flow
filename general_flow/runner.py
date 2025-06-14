@@ -59,9 +59,9 @@ class GeneralFlowRunner(OnPolicyRunner):
 
         # evaluate the policy class
         self.policy_cfg.pop("class_name")
-        num_image_obs = 3 * 64 * 64
+        num_image_obs = 4 * 64 * 64
         num_state_obs = num_obs - num_image_obs
-        observation_shape = {"image": (3, 64, 64), "state": num_state_obs}
+        observation_shape = {"image": (4, 64, 64), "state": num_state_obs}
 
         policy = ConvActorCritic(
             observation_shape, self.env.num_actions, **self.policy_cfg

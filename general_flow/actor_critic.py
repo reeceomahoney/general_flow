@@ -152,7 +152,7 @@ class ConvActorCritic(nn.Module):
         Processes multimodal observations through their respective encoders and fuses the features.
         """
         img_obs = observations[:, : 6 * 64 * 64]
-        img_obs = img_obs.view(-1, 64, 64, 4)
+        img_obs = img_obs.view(-1, 64, 64, 6)
         img_obs = img_obs.permute(0, 3, 1, 2)  # Change to (B, C, H, W)
         state_obs = observations[:, 6 * 64 * 64 :]
         obs_dict = {"image": img_obs, "state": state_obs}

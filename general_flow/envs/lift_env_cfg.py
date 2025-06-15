@@ -197,7 +197,7 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for policy group."""
 
-        camera_rgb = ObsTerm(func=mdp.camera_rgb)
+        camera_rgb = ObsTerm(func=mdp.two_cameras)
         joint_pos = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
         target_object_position = ObsTerm(

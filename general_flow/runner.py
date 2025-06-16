@@ -61,7 +61,7 @@ class GeneralFlowRunner(OnPolicyRunner):
 
         # evaluate the policy class
         self.policy_cfg.pop("class_name")
-        image_shape = (64, 64, 3)
+        image_shape = (64, 64, 6)
         num_state_obs = num_obs - math.prod(image_shape)
         observation_shape = {"image": image_shape, "state": num_state_obs}
 

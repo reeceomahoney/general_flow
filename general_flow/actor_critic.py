@@ -59,7 +59,7 @@ class ConvActorCritic(nn.Module):
             self.visual_encoder = nn.Sequential(*cnn_layers)
             # Calculate the flattened output size from the CNN
             with torch.no_grad():
-                dummy_input = torch.zeros(1, *image_shape)
+                dummy_input = torch.zeros(1, image_shape[-1], *image_shape[:-1])
                 visual_feature_dim = self.visual_encoder(dummy_input).shape[1]
         else:
             self.visual_encoder = None

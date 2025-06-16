@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+from isaaclab.controllers.operational_space_cfg import OperationalSpaceControllerCfg
 import isaaclab.sim as sim_utils
 from isaaclab.assets import (
     AssetBaseCfg,
@@ -10,7 +11,10 @@ from isaaclab.assets import (
 )
 from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
-from isaaclab.envs.mdp.actions.actions_cfg import DifferentialInverseKinematicsActionCfg
+from isaaclab.envs.mdp.actions.actions_cfg import (
+    DifferentialInverseKinematicsActionCfg,
+    OperationalSpaceControllerActionCfg,
+)
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
@@ -169,17 +173,35 @@ class ActionsCfg:
     """Action specifications for the MDP."""
 
     # will be set by agent env cfg
-    arm_action = DifferentialInverseKinematicsActionCfg(
+    # arm_action = DifferentialInverseKinematicsActionCfg(
+    #     asset_name="robot",
+    #     joint_names=["panda_joint.*"],
+    #     body_name="panda_hand",
+    #     controller=DifferentialIKControllerCfg(
+    #         command_type="pose", use_relative_mode=True, ik_method="dls"
+    #     ),
+    #     scale=0.5,
+    #     body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(
+    #         pos=(0.0, 0.0, 0.107)
+    #     ),
+    # )
+    arm_action = OperationalSpaceControllerActionCfg(
         asset_name="robot",
         joint_names=["panda_joint.*"],
         body_name="panda_hand",
-        controller=DifferentialIKControllerCfg(
-            command_type="pose", use_relative_mode=True, ik_method="dls"
+        controller_cfg=OperationalSpaceControllerCfg(
+            target_types=["pose_rel"],
+            impedance_mode="fixed",
+            inertial_dynamics_decoupling=True,
+            partial_inertial_dynamics_decoupling=False,
+            gravity_compensation=True,
+            motion_stiffness_task=500.0,
+            motion_damping_ratio_task=1.0,
         ),
-        scale=0.5,
-        body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(
+        body_offset=OperationalSpaceControllerActionCfg.OffsetCfg(
             pos=(0.0, 0.0, 0.107)
         ),
+        nullspace_joint_pos_target="default",
     )
     gripper_action = mdp.BinaryJointPositionActionCfg(
         asset_name="robot",

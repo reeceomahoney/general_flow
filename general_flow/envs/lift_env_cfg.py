@@ -30,7 +30,7 @@ from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
-from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG, FRANKA_PANDA_HIGH_PD_CFG
+from isaaclab_assets.robots.franka import FRANKA_PANDA_HIGH_PD_CFG
 
 from . import mdp
 
@@ -50,7 +50,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     which need to set the target object, robot and end-effector frames
     """
 
-    robot = FRANKA_PANDA_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    robot = FRANKA_PANDA_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
     ee_frame = FrameTransformerCfg(
         prim_path="{ENV_REGEX_NS}/Robot/panda_link0",
@@ -195,7 +195,7 @@ class ActionsCfg:
             inertial_dynamics_decoupling=True,
             partial_inertial_dynamics_decoupling=False,
             gravity_compensation=True,
-            motion_stiffness_task=500.0,
+            motion_stiffness_task=5.0,
             motion_damping_ratio_task=1.0,
             nullspace_control="position",
         ),
@@ -337,6 +337,12 @@ class FrankaLiftEnvCfg(ManagerBasedRLEnvCfg):
 
     def __post_init__(self):
         """Post initialization."""
+        self.scene.robot.spawn.rigid_props.disable_gravity = False
+        self.scene.robot.actuators["panda_shoulder"].stiffness = 0.0
+        self.scene.robot.actuators["panda_shoulder"].damping = 0.0
+        self.scene.robot.actuators["panda_forearm"].stiffness = 0.0
+        self.scene.robot.actuators["panda_forearm"].damping = 0.0
+
         # general settings
         self.decimation = 2
         self.episode_length_s = 5.0

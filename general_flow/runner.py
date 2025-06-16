@@ -1,3 +1,5 @@
+import math
+
 import rsl_rl
 import torch
 from rsl_rl.algorithms import PPO, Distillation
@@ -59,9 +61,9 @@ class GeneralFlowRunner(OnPolicyRunner):
 
         # evaluate the policy class
         self.policy_cfg.pop("class_name")
-        num_image_obs = 6 * 64 * 64
-        num_state_obs = num_obs - num_image_obs
-        observation_shape = {"image": (6, 64, 64), "state": num_state_obs}
+        image_shape = (64, 64, 3)
+        num_state_obs = num_obs - math.prod(image_shape)
+        observation_shape = {"image": image_shape, "state": num_state_obs}
 
         policy = ConvActorCritic(
             observation_shape, self.env.num_actions, **self.policy_cfg

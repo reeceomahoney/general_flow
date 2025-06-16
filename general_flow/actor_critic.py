@@ -5,11 +5,12 @@
 
 from __future__ import annotations
 
+import math
+
 import torch
 import torch.nn as nn
-from torch.distributions import Normal
-
 from rsl_rl.utils import resolve_nn_activation
+from torch.distributions import Normal
 
 
 class ConvActorCritic(nn.Module):
@@ -27,9 +28,10 @@ class ConvActorCritic(nn.Module):
     ):
         super().__init__()
 
-        image_shape = observation_shape.get("image")
+        image_shape = observation_shape["image"]
         state_dim = observation_shape.get("state")
         activation_fn = resolve_nn_activation(activation)
+        self.image_shape = image_shape
 
         # --- Visual Encoder (CNN) ---
         if image_shape:
@@ -37,7 +39,7 @@ class ConvActorCritic(nn.Module):
             # Input: (C, 64, 64)
             cnn_layers.extend(
                 [
-                    nn.Conv2d(image_shape[0], 32, kernel_size=8, stride=4),
+                    nn.Conv2d(image_shape[-1], 32, kernel_size=8, stride=4),
                     activation_fn,
                 ]
             )
@@ -151,10 +153,10 @@ class ConvActorCritic(nn.Module):
         """
         Processes multimodal observations through their respective encoders and fuses the features.
         """
-        img_obs = observations[:, : 6 * 64 * 64]
-        img_obs = img_obs.view(-1, 64, 64, 6)
+        img_obs = observations[:, : math.prod(self.image_shape)]
+        img_obs = img_obs.view(-1, *self.image_shape)
         img_obs = img_obs.permute(0, 3, 1, 2)  # Change to (B, C, H, W)
-        state_obs = observations[:, 6 * 64 * 64 :]
+        state_obs = observations[:, math.prod(self.image_shape) :]
         obs_dict = {"image": img_obs, "state": state_obs}
 
         feature_list = []

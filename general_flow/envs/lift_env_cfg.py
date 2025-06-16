@@ -197,6 +197,7 @@ class ActionsCfg:
             gravity_compensation=True,
             motion_stiffness_task=500.0,
             motion_damping_ratio_task=1.0,
+            nullspace_control="position",
         ),
         body_offset=OperationalSpaceControllerActionCfg.OffsetCfg(
             pos=(0.0, 0.0, 0.107)

@@ -65,6 +65,7 @@ import os
 import time
 
 import gymnasium as gym
+import matplotlib.pyplot as plt
 import torch
 
 import general_flow.envs  # noqa: F401

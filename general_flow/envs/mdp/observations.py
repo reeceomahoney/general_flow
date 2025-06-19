@@ -25,7 +25,7 @@ def two_cameras(env: ManagerBasedRLEnv) -> torch.Tensor:
 
 
 def camera_rgb_depth_seg(env: ManagerBasedRLEnv) -> torch.Tensor:
-    rgb = env.scene["tiled_camera"].data.output["rgb"]
+    # rgb = env.scene["tiled_camera"].data.output["rgb"]
     depth = env.scene["tiled_camera"].data.output["depth"]
     seg = env.scene["tiled_camera"].data.output["semantic_segmentation"]
-    return torch.cat((rgb, depth, seg), dim=-1).flatten(start_dim=1)
+    return torch.cat((depth, seg), dim=-1).flatten(start_dim=1)

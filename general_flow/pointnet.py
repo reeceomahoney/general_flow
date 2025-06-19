@@ -30,7 +30,7 @@ class PointNetEncoder(nn.Module):
         cprint("pointnet use_final_norm: {}".format(final_norm), "cyan")
 
         self.mlp = nn.Sequential(
-            nn.Linear(6, block_channel[0]),
+            nn.Linear(3, block_channel[0]),
             nn.LayerNorm(block_channel[0]) if use_layernorm else nn.Identity(),
             nn.ReLU(),
             nn.Linear(block_channel[0], block_channel[1]),
@@ -80,10 +80,10 @@ class PointNetEncoder(nn.Module):
 
     def _create_point_cloud(self, x):
         # load RGB and depth images
-        rgb_img = x[..., :3] / 255.0
-        depth_img = x[..., 3:4]
-        seg_img = x[..., 4:5]
-        B = rgb_img.shape[0]
+        # rgb_img = x[..., :3] / 255.0
+        depth_img = x[..., :1]
+        seg_img = x[..., 1:]
+        B = depth_img.shape[0]
 
         # unproject pixels to 3D points
         Z = depth_img
@@ -95,7 +95,7 @@ class PointNetEncoder(nn.Module):
         mask = (Z < 3.0).expand_as(points)
         seg_mask = (seg_img != 2).expand_as(points)
         points = torch.where(mask & seg_mask, points, torch.zeros_like(points))
-        rgb_img = torch.where(mask & seg_mask, rgb_img, torch.zeros_like(rgb_img))
+        # rgb_img = torch.where(mask & seg_mask, rgb_img, torch.zeros_like(rgb_img))
 
         # transform points to world coordinates
         t = (
@@ -107,7 +107,8 @@ class PointNetEncoder(nn.Module):
 
         # downsample
         world_points_downsample, indices = sample_farthest_points(world_points, K=512)
-        indices = indices.unsqueeze(-1).expand(-1, -1, 3)
-        rgb_downsample = torch.gather(rgb_img.reshape(B, -1, 3), 1, indices)
+        # indices = indices.unsqueeze(-1).expand(-1, -1, 3)
+        # rgb_downsample = torch.gather(rgb_img.reshape(B, -1, 3), 1, indices)
 
-        return torch.cat((world_points_downsample, rgb_downsample), dim=-1)
+        # return torch.cat((world_points_downsample, rgb_downsample), dim=-1)
+        return world_points_downsample

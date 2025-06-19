@@ -296,7 +296,7 @@ class FrankaLiftEnvCfg(ManagerBasedRLEnvCfg):
                 # rot=(-0.1393, 0.2025, 0.8185, -0.5192),
                 # convention="ros",
             ),
-            data_types=["rgb", "depth", "semantic_segmentation"],
+            data_types=["depth", "semantic_segmentation"],
             colorize_semantic_segmentation=False,
             spawn=sim_utils.PinholeCameraCfg(
                 focal_length=50.0,

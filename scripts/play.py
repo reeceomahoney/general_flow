@@ -65,7 +65,6 @@ import os
 import time
 
 import gymnasium as gym
-import matplotlib.pyplot as plt
 import torch
 
 import general_flow.envs  # noqa: F401
@@ -147,27 +146,11 @@ def main():
     # obtain the trained policy for inference
     policy = ppo_runner.get_inference_policy(device=env.unwrapped.device)
 
-    # extract the neural network module
-    # we do this in a try-except to maintain backwards compatibility.
-    try:
-        # version 2.3 onwards
-        policy_nn = ppo_runner.alg.policy
-    except AttributeError:
-        # version 2.2 and below
-        policy_nn = ppo_runner.alg.actor_critic
-
     dt = env.unwrapped.step_dt
 
     # reset environment
     obs, _ = env.get_observations()
     timestep = 0
-
-    # plt.ion()  # Turn on interactive mode
-    # fig, ax = plt.subplots()
-    # img = env.unwrapped.scene["tiled_camera"].data.output["rgb"]
-    # image_display = ax.imshow(img[0].cpu())
-    # ax.axis("off")
-    # plt.show(block=False)
 
     # simulate environment
     while simulation_app.is_running():
@@ -178,12 +161,6 @@ def main():
             actions = policy(obs)
             # env stepping
             obs, _, _, _ = env.step(actions)
-
-            # # update the image image_display
-            # img = env.unwrapped.scene["tiled_camera"].data.output["depth"]
-            # image_display.set_data(img[0].cpu())
-            # fig.canvas.draw()
-            # fig.canvas.flush_events()
 
         if args_cli.video:
             timestep += 1

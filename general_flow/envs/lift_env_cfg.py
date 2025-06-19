@@ -289,15 +289,17 @@ class FrankaLiftEnvCfg(ManagerBasedRLEnvCfg):
         self.scene.tiled_camera = TiledCameraCfg(
             prim_path="{ENV_REGEX_NS}/Camera",
             offset=TiledCameraCfg.OffsetCfg(
-                # pos=(2.5, 0.0, 1.5), rot=(0.62, 0.34, 0.34, 0.62), convention="opengl"
-                pos=(1.4, 1.8, 1.2),
-                rot=(-0.1393, 0.2025, 0.8185, -0.5192),
-                convention="ros",
+                pos=(2.5, 0.0, 1.5),
+                rot=(0.62, 0.34, 0.34, 0.62),
+                convention="opengl",
+                # pos=(1.4, 1.8, 1.2),
+                # rot=(-0.1393, 0.2025, 0.8185, -0.5192),
+                # convention="ros",
             ),
-            data_types=["semantic_segmentation"],
+            data_types=["rgb", "depth", "semantic_segmentation"],
             colorize_semantic_segmentation=False,
             spawn=sim_utils.PinholeCameraCfg(
-                focal_length=24.0,
+                focal_length=50.0,
                 focus_distance=400.0,
                 horizontal_aperture=20.955,
                 clipping_range=(0.1, 3.0),

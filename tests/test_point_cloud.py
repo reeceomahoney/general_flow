@@ -29,7 +29,7 @@ points = torch.cat((X, Y, Z), dim=-1)
 
 # truncate points based on depth
 mask = (Z < 3.0).squeeze(-1)
-seg_mask = (seg_img != 15).squeeze(-1)
+seg_mask = (seg_img != 2).squeeze(-1)
 points = points[mask & seg_mask]
 rgb_img = rgb_img[mask & seg_mask]
 

@@ -12,6 +12,8 @@ import torch.nn as nn
 from rsl_rl.utils import resolve_nn_activation
 from torch.distributions import Normal
 
+from general_flow.pointnet import PointNetEncoder
+
 
 class ConvActorCritic(nn.Module):
     is_recurrent = False
@@ -20,6 +22,7 @@ class ConvActorCritic(nn.Module):
         self,
         observation_shape: dict,
         num_actions: int,
+        device: str,
         actor_hidden_dims=[256, 128],
         critic_hidden_dims=[256, 128],
         activation="elu",
@@ -35,32 +38,32 @@ class ConvActorCritic(nn.Module):
 
         # --- Visual Encoder (CNN) ---
         if image_shape:
-            cnn_layers = []
-            # Input: (C, 64, 64)
-            cnn_layers.extend(
-                [
-                    nn.Conv2d(image_shape[-1], 32, kernel_size=8, stride=4),
-                    activation_fn,
-                ]
+            # cnn_layers = []
+            # # Input: (C, 64, 64)
+            # cnn_layers.extend(
+            #     [
+            #         nn.Conv2d(image_shape[-1], 32, kernel_size=8, stride=4),
+            #         activation_fn,
+            #     ]
+            # )
+            # cnn_layers.extend(
+            #     [
+            #         nn.Conv2d(32, 64, kernel_size=4, stride=2),
+            #         activation_fn,
+            #     ]
+            # )
+            # cnn_layers.extend(
+            #     [
+            #         nn.Conv2d(64, 64, kernel_size=3, stride=1),
+            #         activation_fn,
+            #     ]
+            # )
+            # cnn_layers.append(nn.Flatten())
+            # self.visual_encoder = nn.Sequential(*cnn_layers)
+            visual_feature_dim = 64
+            self.visual_encoder = PointNetEncoder(
+                image_shape, visual_feature_dim, device=device
             )
-            cnn_layers.extend(
-                [
-                    nn.Conv2d(32, 64, kernel_size=4, stride=2),
-                    activation_fn,
-                ]
-            )
-            cnn_layers.extend(
-                [
-                    nn.Conv2d(64, 64, kernel_size=3, stride=1),
-                    activation_fn,
-                ]
-            )
-            cnn_layers.append(nn.Flatten())
-            self.visual_encoder = nn.Sequential(*cnn_layers)
-            # Calculate the flattened output size from the CNN
-            with torch.no_grad():
-                dummy_input = torch.zeros(1, image_shape[-1], *image_shape[:-1])
-                visual_feature_dim = self.visual_encoder(dummy_input).shape[1]
         else:
             self.visual_encoder = None
             visual_feature_dim = 0
@@ -68,8 +71,8 @@ class ConvActorCritic(nn.Module):
         # --- State Encoder (MLP) ---
         if state_dim:
             state_encoder_layers = []
-            state_encoder_layers.extend([nn.Linear(state_dim, 128), activation_fn])
-            state_encoder_layers.extend([nn.Linear(128, 64), activation_fn])
+            state_encoder_layers.extend([nn.Linear(state_dim, 64), activation_fn])
+            state_encoder_layers.extend([nn.Linear(64, 64), activation_fn])
             self.state_encoder = nn.Sequential(*state_encoder_layers)
             state_feature_dim = 64
         else:
@@ -155,7 +158,7 @@ class ConvActorCritic(nn.Module):
         """
         img_obs = observations[:, : math.prod(self.image_shape)]
         img_obs = img_obs.view(-1, *self.image_shape)
-        img_obs = img_obs.permute(0, 3, 1, 2)  # Change to (B, C, H, W)
+        # img_obs = img_obs.permute(0, 3, 1, 2)  # Change to (B, C, H, W)
         state_obs = observations[:, math.prod(self.image_shape) :]
         obs_dict = {"image": img_obs, "state": state_obs}
 

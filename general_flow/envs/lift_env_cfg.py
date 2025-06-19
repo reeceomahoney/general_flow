@@ -93,7 +93,8 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
             pos=(0.5, 0, 0), rot=(0.707, 0, 0, 0.707)
         ),
         spawn=UsdFileCfg(
-            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd"
+            usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd",
+            semantic_tags=[("class", "table")],
         ),
     )
 
@@ -115,15 +116,16 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
         offset=TiledCameraCfg.OffsetCfg(
             pos=(2.5, 0.0, 1.5), rot=(0.62, 0.34, 0.34, 0.62), convention="opengl"
         ),
-        data_types=["rgb"],
+        data_types=["rgb", "depth", "instance_segmentation_fast"],
+        colorize_semantic_segmentation=False,
         spawn=sim_utils.PinholeCameraCfg(
             focal_length=50.0,
             focus_distance=400.0,
             horizontal_aperture=20.955,
             clipping_range=(0.1, 20.0),
         ),
-        width=64,
-        height=64,
+        width=84,
+        height=84,
     )
 
     wrist_camera = TiledCameraCfg(
@@ -221,7 +223,7 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for policy group."""
 
-        camera_rgb = ObsTerm(func=mdp.two_cameras)
+        camera = ObsTerm(func=mdp.camera_rgb_depth_seg)
         joint_pos = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
         target_object_position = ObsTerm(
@@ -343,7 +345,6 @@ class FrankaLiftEnvCfg(ManagerBasedRLEnvCfg):
         self.scene.robot.actuators["panda_shoulder"].damping = 0.0
         self.scene.robot.actuators["panda_forearm"].stiffness = 0.0
         self.scene.robot.actuators["panda_forearm"].damping = 0.0
-
         # general settings
         self.decimation = 2
         self.episode_length_s = 5.0

@@ -7,7 +7,6 @@ from pytorch3d.ops import sample_farthest_points
 rgb_img = torch.load("tests/rgb.pt")
 depth_img = torch.load("tests/depth.pt")
 seg_img = torch.load("tests/seg.pt")
-B = rgb_img.shape[0]
 device = "cuda"
 
 # camera intrinsics
@@ -19,8 +18,8 @@ fx = (width * focal_length) / 20.995
 u = torch.arange(width, device=device)
 v = torch.arange(width, device=device)
 u_grid, v_grid = torch.meshgrid(u, v, indexing="xy")
-u_grid = u_grid.expand(B, -1, -1).unsqueeze(-1)
-v_grid = v_grid.expand(B, -1, -1).unsqueeze(-1)
+u_grid = u_grid.unsqueeze(-1)
+v_grid = v_grid.unsqueeze(-1)
 
 # unproject pixels to 3D points (negative because of meshgrid indexing)
 Z = depth_img

@@ -20,3 +20,9 @@ def two_cameras(env: ManagerBasedRLEnv) -> torch.Tensor:
     scene_rgb = env.scene["tiled_camera"].data.output["rgb"]
     wrist_rgb = env.scene["wrist_camera"].data.output["rgb"]
     return torch.cat((scene_rgb, wrist_rgb), dim=-1).flatten(start_dim=1)
+
+def camera_rgb_depth_seg(env: ManagerBasedRLEnv) -> torch.Tensor:
+    rgb = env.scene["tiled_camera"].data.output["rgb"]
+    depth = env.scene["tiled_camera"].data.output["depth"]
+    seg = env.scene["tiled_camera"].data.output["instance_segmentation_fast"]
+    return torch.cat((rgb, depth, seg), dim=-1).flatten(start_dim=1)

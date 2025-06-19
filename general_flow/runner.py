@@ -61,12 +61,12 @@ class GeneralFlowRunner(OnPolicyRunner):
 
         # evaluate the policy class
         self.policy_cfg.pop("class_name")
-        image_shape = (64, 64, 6)
+        image_shape = (84, 84, 5)
         num_state_obs = num_obs - math.prod(image_shape)
         observation_shape = {"image": image_shape, "state": num_state_obs}
 
         policy = ConvActorCritic(
-            observation_shape, self.env.num_actions, **self.policy_cfg
+            observation_shape, self.env.num_actions, self.device, **self.policy_cfg
         ).to(self.device)
 
         # resolve dimension of rnd gated state

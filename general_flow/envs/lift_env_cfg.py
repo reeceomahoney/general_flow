@@ -1,21 +1,11 @@
-# Copyright (c) 2022-2025, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
-# All rights reserved.
-#
-# SPDX-License-Identifier: BSD-3-Clause
-
-from isaaclab.controllers.operational_space_cfg import OperationalSpaceControllerCfg
 import isaaclab.sim as sim_utils
 from isaaclab.assets import (
     AssetBaseCfg,
     RigidObjectCfg,
 )
-from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
+from isaaclab.controllers.operational_space_cfg import OperationalSpaceControllerCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
-from isaaclab.envs.mdp.actions.actions_cfg import (
-    DifferentialInverseKinematicsActionCfg,
-    OperationalSpaceControllerActionCfg,
-)
-from isaaclab.managers import CurriculumTermCfg as CurrTerm
+from isaaclab.envs.mdp.actions.actions_cfg import OperationalSpaceControllerActionCfg
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
@@ -111,38 +101,23 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
     )
 
-    tiled_camera: TiledCameraCfg = TiledCameraCfg(
-        prim_path="/World/envs/env_.*/Camera",
-        offset=TiledCameraCfg.OffsetCfg(
-            pos=(2.5, 0.0, 1.5), rot=(0.62, 0.34, 0.34, 0.62), convention="opengl"
-        ),
-        data_types=["rgb", "depth", "instance_segmentation_fast"],
-        colorize_semantic_segmentation=False,
-        spawn=sim_utils.PinholeCameraCfg(
-            focal_length=50.0,
-            focus_distance=400.0,
-            horizontal_aperture=20.955,
-            clipping_range=(0.1, 20.0),
-        ),
-        width=84,
-        height=84,
-    )
+    tiled_camera: TiledCameraCfg | None = None
 
-    wrist_camera = TiledCameraCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/panda_hand/Camera",
-        offset=TiledCameraCfg.OffsetCfg(
-            pos=(0.02, 0.0, 0.0), rot=(0.0, 0.0, 1.0, 0.0), convention="opengl"
-        ),
-        data_types=["rgb"],
-        spawn=sim_utils.PinholeCameraCfg(
-            focal_length=50.0,
-            focus_distance=400.0,
-            horizontal_aperture=20.955,
-            clipping_range=(0.1, 20.0),
-        ),
-        width=64,
-        height=64,
-    )
+    # wrist_camera = TiledCameraCfg(
+    #     prim_path="{ENV_REGEX_NS}/Robot/panda_hand/Camera",
+    #     offset=TiledCameraCfg.OffsetCfg(
+    #         pos=(0.02, 0.0, 0.0), rot=(0.0, 0.0, 1.0, 0.0), convention="opengl"
+    #     ),
+    #     data_types=["rgb"],
+    #     spawn=sim_utils.PinholeCameraCfg(
+    #         focal_length=50.0,
+    #         focus_distance=400.0,
+    #         horizontal_aperture=20.955,
+    #         clipping_range=(0.1, 20.0),
+    #     ),
+    #     width=64,
+    #     height=64,
+    # )
 
 
 ##
@@ -174,19 +149,6 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    # will be set by agent env cfg
-    # arm_action = DifferentialInverseKinematicsActionCfg(
-    #     asset_name="robot",
-    #     joint_names=["panda_joint.*"],
-    #     body_name="panda_hand",
-    #     controller=DifferentialIKControllerCfg(
-    #         command_type="pose", use_relative_mode=True, ik_method="dls"
-    #     ),
-    #     scale=0.5,
-    #     body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(
-    #         pos=(0.0, 0.0, 0.107)
-    #     ),
-    # )
     arm_action = OperationalSpaceControllerActionCfg(
         asset_name="robot",
         joint_names=["panda_joint.*"],
@@ -302,21 +264,6 @@ class TerminationsCfg:
     )
 
 
-@configclass
-class CurriculumCfg:
-    """Curriculum terms for the MDP."""
-
-    action_rate = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "action_rate", "weight": -1e-1, "num_steps": 10000},
-    )
-
-    joint_vel = CurrTerm(
-        func=mdp.modify_reward_weight,
-        params={"term_name": "joint_vel", "weight": -1e-1, "num_steps": 10000},
-    )
-
-
 ##
 # Environment configuration
 ##
@@ -336,10 +283,28 @@ class FrankaLiftEnvCfg(ManagerBasedRLEnvCfg):
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
     events: EventCfg = EventCfg()
-    # curriculum: CurriculumCfg = CurriculumCfg()
 
     def __post_init__(self):
         """Post initialization."""
+        self.scene.tiled_camera = TiledCameraCfg(
+            prim_path="{ENV_REGEX_NS}/Camera",
+            offset=TiledCameraCfg.OffsetCfg(
+                # pos=(2.5, 0.0, 1.5), rot=(0.62, 0.34, 0.34, 0.62), convention="opengl"
+                pos=(1.4, 1.8, 1.2),
+                rot=(-0.1393, 0.2025, 0.8185, -0.5192),
+                convention="ros",
+            ),
+            data_types=["semantic_segmentation"],
+            colorize_semantic_segmentation=False,
+            spawn=sim_utils.PinholeCameraCfg(
+                focal_length=24.0,
+                focus_distance=400.0,
+                horizontal_aperture=20.955,
+                clipping_range=(0.1, 3.0),
+            ),
+            width=84,
+            height=84,
+        )
         self.scene.robot.spawn.rigid_props.disable_gravity = False
         self.scene.robot.actuators["panda_shoulder"].stiffness = 0.0
         self.scene.robot.actuators["panda_shoulder"].damping = 0.0

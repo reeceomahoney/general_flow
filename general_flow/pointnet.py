@@ -1,4 +1,3 @@
-import open3d as o3d
 import torch
 import torch.nn as nn
 from pytorch3d.ops import sample_farthest_points
@@ -64,6 +63,7 @@ class PointNetEncoder(nn.Module):
         u_grid = u_grid.unsqueeze(-1)
         v_grid = v_grid.unsqueeze(-1)
 
+        # negative because of meshgrid indexing
         self.u_grid = -(u_grid - width // 2) / fx
         self.v_grid = -(v_grid - width // 2) / fx
 
@@ -80,21 +80,22 @@ class PointNetEncoder(nn.Module):
 
     def _create_point_cloud(self, x):
         # load RGB and depth images
-        rgb_img = x[..., :3]
+        rgb_img = x[..., :3] / 255.0
         depth_img = x[..., 3:4]
         seg_img = x[..., 4:5]
+        B = rgb_img.shape[0]
 
-        # unproject pixels to 3D points (negative because of meshgrid indexing)
+        # unproject pixels to 3D points
         Z = depth_img
         X = self.u_grid * Z
         Y = self.v_grid * Z
         points = torch.cat((X, Y, Z), dim=-1)
 
         # mask points based on depth and segmentation
-        mask = (Z < 3.0).squeeze(-1)
-        seg_mask = (seg_img != 15).squeeze(-1)
-        points = points[mask & seg_mask]
-        rgb_img = rgb_img[mask & seg_mask] / 255.0
+        mask = (Z < 3.0).expand_as(points)
+        seg_mask = (seg_img != 2).expand_as(points)
+        points = torch.where(mask & seg_mask, points, torch.zeros_like(points))
+        rgb_img = torch.where(mask & seg_mask, rgb_img, torch.zeros_like(rgb_img))
 
         # transform points to world coordinates
         t = (
@@ -102,11 +103,11 @@ class PointNetEncoder(nn.Module):
             .rotate_axis_angle(33)
             .translate(0, 1.5, -2.5)
         )
-        world_points = t.transform_points(points)
+        world_points = t.transform_points(points.reshape(B, -1, 3))
 
         # downsample
-        world_points, indices = sample_farthest_points(world_points.unsqueeze(0), K=512)
-        rgb_img = rgb_img[indices]
+        world_points_downsample, indices = sample_farthest_points(world_points, K=512)
+        indices = indices.unsqueeze(-1).expand(-1, -1, 3)
+        rgb_downsample = torch.gather(rgb_img.reshape(B, -1, 3), 1, indices)
 
-        breakpoint()
-        return torch.cat((world_points, rgb_img), dim=-1)
+        return torch.cat((world_points_downsample, rgb_downsample), dim=-1)

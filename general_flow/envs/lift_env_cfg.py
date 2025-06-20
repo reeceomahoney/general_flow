@@ -185,9 +185,10 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for policy group."""
 
-        camera = ObsTerm(func=mdp.camera_rgb_depth_seg)
+        # camera = ObsTerm(func=mdp.camera_rgb_depth_seg)
         joint_pos = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
+        object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
         target_object_position = ObsTerm(
             func=mdp.generated_commands, params={"command_name": "object_pose"}
         )
@@ -286,27 +287,27 @@ class FrankaLiftEnvCfg(ManagerBasedRLEnvCfg):
 
     def __post_init__(self):
         """Post initialization."""
-        self.scene.tiled_camera = TiledCameraCfg(
-            prim_path="{ENV_REGEX_NS}/Camera",
-            offset=TiledCameraCfg.OffsetCfg(
-                pos=(2.5, 0.0, 1.5),
-                rot=(0.62, 0.34, 0.34, 0.62),
-                convention="opengl",
-                # pos=(1.4, 1.8, 1.2),
-                # rot=(-0.1393, 0.2025, 0.8185, -0.5192),
-                # convention="ros",
-            ),
-            data_types=["depth", "semantic_segmentation"],
-            colorize_semantic_segmentation=False,
-            spawn=sim_utils.PinholeCameraCfg(
-                focal_length=50.0,
-                focus_distance=400.0,
-                horizontal_aperture=20.955,
-                clipping_range=(0.1, 3.0),
-            ),
-            width=84,
-            height=84,
-        )
+        # self.scene.tiled_camera = TiledCameraCfg(
+        #     prim_path="{ENV_REGEX_NS}/Camera",
+        #     offset=TiledCameraCfg.OffsetCfg(
+        #         pos=(2.5, 0.0, 1.5),
+        #         rot=(0.62, 0.34, 0.34, 0.62),
+        #         convention="opengl",
+        #         # pos=(1.4, 1.8, 1.2),
+        #         # rot=(-0.1393, 0.2025, 0.8185, -0.5192),
+        #         # convention="ros",
+        #     ),
+        #     data_types=["depth", "semantic_segmentation"],
+        #     colorize_semantic_segmentation=False,
+        #     spawn=sim_utils.PinholeCameraCfg(
+        #         focal_length=50.0,
+        #         focus_distance=400.0,
+        #         horizontal_aperture=20.955,
+        #         clipping_range=(0.1, 3.0),
+        #     ),
+        #     width=84,
+        #     height=84,
+        # )
         self.scene.robot.spawn.rigid_props.disable_gravity = False
         self.scene.robot.actuators["panda_shoulder"].stiffness = 0.0
         self.scene.robot.actuators["panda_shoulder"].damping = 0.0

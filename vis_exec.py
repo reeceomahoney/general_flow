@@ -113,7 +113,7 @@ def visualization_exec(args, result):
     print(f"inference_num: {result['inference_num']}")
     print("#"*20 + " VISUALIZATION START " + "#"*20)
 
-    color_motion = [0, 0, 1]    # green for motion
+    color_motion = [1, 0, 0]    # green for motion
     color_kpst = [0, 1, 0]      # red for kpst
 
     use_traj_idx = 0 
@@ -168,6 +168,7 @@ def visualization_exec(args, result):
         vis.add_geometry(mesh_arrow)
         mesh_sphere_end.paint_uniform_color(color_motion)
         vis.add_geometry(mesh_sphere_end)
+        pos = nxt
         
         # mesh_frame, mesh_arrow, mesh_sphere_begin, mesh_sphere_end = get_arrow(pos-pos_org, nxt-pos_org)
         # mesh_arrow.paint_uniform_color(color_motion) 

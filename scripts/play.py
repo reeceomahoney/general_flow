@@ -116,6 +116,7 @@ def main():
     env = gym.make(
         args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None
     )
+    env.unwrapped.sim.set_camera_view([2.0, 2.0, 2.0], [0.0, 0.0, 0.0])  # type: ignore
 
     # convert to single-agent instance if required by the RL algorithm
     if isinstance(env.unwrapped, DirectMARLEnv):
@@ -124,7 +125,8 @@ def main():
     # wrap for video recording
     if args_cli.video:
         video_kwargs = {
-            "video_folder": os.path.join(log_dir, "videos", "play"),
+            # "video_folder": os.path.join(log_dir, "videos", "play"),
+            "video_folder": ".",
             "step_trigger": lambda step: step == 0,
             "video_length": args_cli.video_length,
             "disable_logger": True,

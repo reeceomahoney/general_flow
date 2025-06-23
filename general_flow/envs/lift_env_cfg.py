@@ -159,7 +159,7 @@ class ActionsCfg:
             inertial_dynamics_decoupling=True,
             partial_inertial_dynamics_decoupling=False,
             gravity_compensation=True,
-            motion_stiffness_task=500,
+            motion_stiffness_task=10,
             motion_damping_ratio_task=1.0,
             nullspace_control="position",
         ),

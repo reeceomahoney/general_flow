@@ -159,10 +159,9 @@ class ActionsCfg:
             inertial_dynamics_decoupling=True,
             partial_inertial_dynamics_decoupling=False,
             gravity_compensation=True,
-            motion_stiffness_task=5.0,
+            motion_stiffness_task=500,
             motion_damping_ratio_task=1.0,
             nullspace_control="position",
-            nullspace_stiffness=0.5,
         ),
         body_offset=OperationalSpaceControllerActionCfg.OffsetCfg(
             pos=(0.0, 0.0, 0.107)
@@ -244,11 +243,11 @@ class RewardsCfg:
     )
 
     # action penalty
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-4)
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.1)
 
     joint_vel = RewTerm(
         func=mdp.joint_vel_l2,
-        weight=-1e-4,
+        weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot")},
     )
 

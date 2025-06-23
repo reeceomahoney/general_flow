@@ -705,6 +705,11 @@ wheels = [
 ]
 
 [[package]]
+name = "cotracker"
+version = "3.0"
+source = { git = "https://github.com/facebookresearch/co-tracker#82e02e8029753ad4ef13cf06be7f4fc5facdda4d" }
+
+[[package]]
 name = "cycler"
 version = "0.12.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1140,6 +1145,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "clip" },
+    { name = "cotracker" },
     { name = "dash" },
     { name = "easydict" },
     { name = "flow-vis" },
@@ -1193,6 +1199,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "clip", git = "https://github.com/openai/CLIP.git" },
+    { name = "cotracker", git = "https://github.com/facebookresearch/co-tracker" },
     { name = "dash", specifier = "==2.14.1" },
     { name = "easydict", specifier = ">=1.13" },
     { name = "flow-vis", specifier = "==0.1" },

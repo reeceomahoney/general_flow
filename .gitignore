@@ -145,3 +145,4 @@ cython_debug/
 logs/
 outputs/
 wandb/
+*.mp4

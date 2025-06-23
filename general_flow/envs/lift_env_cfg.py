@@ -12,7 +12,6 @@ from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
-from isaaclab.markers.config import FRAME_MARKER_CFG
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import FrameTransformerCfg, TiledCameraCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
@@ -28,10 +27,6 @@ from . import mdp
 # Scene definition
 ##
 
-marker_cfg = FRAME_MARKER_CFG.copy()
-marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
-marker_cfg.prim_path = "/Visuals/FrameTransformer"
-
 
 @configclass
 class ObjectTableSceneCfg(InteractiveSceneCfg):
@@ -45,7 +40,6 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     ee_frame = FrameTransformerCfg(
         prim_path="{ENV_REGEX_NS}/Robot/panda_link0",
         debug_vis=False,
-        visualizer_cfg=marker_cfg,
         target_frames=[
             FrameTransformerCfg.FrameCfg(
                 prim_path="{ENV_REGEX_NS}/Robot/panda_hand",

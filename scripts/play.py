@@ -8,6 +8,7 @@
 """Launch Isaac Sim Simulator first."""
 
 import argparse
+import pickle
 
 from isaaclab.app import AppLauncher
 
@@ -46,13 +47,14 @@ parser.add_argument(
     default=False,
     help="Run in real-time, if possible.",
 )
+parser.add_argument("--camera_video", action="store_true", default=False)
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 # always enable cameras to record video
-if args_cli.video:
+if args_cli.video or args_cli.camera_video:
     args_cli.enable_cameras = True
 
 # launch omniverse app
@@ -65,6 +67,8 @@ import os
 import time
 
 import gymnasium as gym
+import imageio.v3 as iio
+import numpy as np
 import torch
 
 import general_flow.envs  # noqa: F401
@@ -76,14 +80,10 @@ from isaaclab.utils.pretrained_checkpoint import get_published_pretrained_checkp
 from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg
 
-
 # PLACEHOLDER: Extension template (do not remove this comment)
 
 
 def save_frame(env):
-    import numpy as np
-    import imageio.v3 as iio
-
     rgb = env.unwrapped.scene["tiled_camera"].data.output["rgb"]
     rgb = rgb.squeeze().cpu().numpy()
     depth = env.unwrapped.scene["tiled_camera"].data.output["depth"]
@@ -168,35 +168,53 @@ def main():
     obs, _ = env.get_observations()
     timestep = 0
 
-    save_frame(env)
+    # save_frame(env)
 
-    # simulate environment
+    if args_cli.camera_video:
+        frames = []
+        max_timesteps = 250
+
     while simulation_app.is_running():
         start_time = time.time()
-        # run everything in inference mode
+
         with torch.inference_mode():
-            # agent stepping
             actions = policy(obs)
-            # env stepping
             obs, _, _, _ = env.step(actions)
+
+        if args_cli.camera_video:
+            rgb = env.unwrapped.scene["tiled_camera"].data.output["rgb"]
+            frames.append(rgb.clone().squeeze())
+            if timestep == 0:
+                seg = env.unwrapped.scene["tiled_camera"].data.output[
+                    "semantic_segmentation"
+                ]
+                seg_mask = (seg == 2).squeeze()
+
+            timestep += 1
+            if timestep == max_timesteps:
+                break
 
         if args_cli.video:
             timestep += 1
-            # Exit the play loop after recording one video
             if timestep == args_cli.video_length:
                 break
 
-        # time delay for real-time evaluation
         sleep_time = dt - (time.time() - start_time)
         if args_cli.real_time and sleep_time > 0:
             time.sleep(sleep_time)
+
+    if args_cli.camera_video:
+        print("[INFO] Saving frames to video.")
+        frames = torch.stack(frames, dim=0).cpu().numpy()
+        # doing this because policy is too fast
+        frames = frames[:100][::2]
+        iio.imwrite("tests/video.mp4", frames, fps=10)
+        np.save("tests/seg_masks.npy", seg_mask.cpu().numpy())
 
     # close the simulator
     env.close()
 
 
 if __name__ == "__main__":
-    # run the main function
     main()
-    # close sim app
     simulation_app.close()

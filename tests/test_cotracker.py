@@ -1,24 +1,53 @@
 import torch
 from cotracker.utils.visualizer import Visualizer
 import imageio.v3 as iio
+import time
 
-# Download the video
-# url = "https://github.com/facebookresearch/co-tracker/raw/refs/heads/main/assets/apple.mp4"
-url = "output.mp4"
 
-frames = iio.imread(url, plugin="FFMPEG")  # plugin="pyav"
+def get_performance_metrics(start_time):
+    # Get the maximum GPU memory allocated
+    max_memory_bytes = torch.cuda.max_memory_allocated()
+    max_memory_gb = max_memory_bytes / (1024**3)
+    print(f"\nMaximum GPU Memory Usage: {max_memory_gb:.2f} GB")
 
+    # Get the total time taken for the operation
+    end_time = time.time()
+    total_time = end_time - start_time
+    print(f"Total Time Taken: {total_time:.2f} seconds")
+
+
+frames = iio.imread("output.mp4", plugin="FFMPEG")  # plugin="pyav"
 device = "cuda"
 grid_size = 20
 video = torch.tensor(frames).permute(0, 3, 1, 2)[None].float().to(device)  # B T C H W
 
+# Load the CoTracker models
+offline_cotracker = torch.hub.load(
+    "facebookresearch/co-tracker", "cotracker3_offline"
+).to(device)  # type: ignore
+online_cotracker = torch.hub.load(
+    "facebookresearch/co-tracker", "cotracker3_online"
+).to(device)  # type: ignore
+
 # Run Offline CoTracker:
-cotracker = torch.hub.load("facebookresearch/co-tracker", "cotracker3_offline").to(
-    device
-)
-pred_tracks, pred_visibility = cotracker(
+torch.cuda.reset_peak_memory_stats()
+start = time.time()
+pred_tracks, pred_visibility = offline_cotracker(
     video, grid_size=grid_size
 )  # B T N 2,  B T N 1
+get_performance_metrics(start)
 
+# Run Online CoTracker:
+torch.cuda.reset_peak_memory_stats()
+start = time.time()
+online_cotracker(video_chunk=video, is_first_step=True, grid_size=grid_size)
+for ind in range(0, video.shape[1] - online_cotracker.step, online_cotracker.step):
+    pred_tracks, pred_visibility = online_cotracker(
+        video_chunk=video[:, ind : ind + online_cotracker.step * 2]
+    )  # B T N 2,  B T N 1
+
+get_performance_metrics(start)
+
+# Visualize the results
 vis = Visualizer(save_dir="./saved_videos", pad_value=0, linewidth=3)
 vis.visualize(video, pred_tracks, pred_visibility)

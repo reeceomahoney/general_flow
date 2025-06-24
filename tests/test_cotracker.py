@@ -1,12 +1,15 @@
 import time
+import types
 
 import imageio.v3 as iio
 import numpy as np
 import torch
 from cotracker.utils.visualizer import Visualizer
 
-RUN_OFFLINE = True
-RUN_ONLINE = False
+from general_flow.masked_online_predictor import masked_forward
+
+RUN_OFFLINE = False
+RUN_ONLINE = True
 
 
 def get_performance_metrics(start_time):
@@ -26,8 +29,8 @@ device = "cuda"
 grid_size = 80
 video = torch.tensor(frames).permute(0, 3, 1, 2)[None].float().to(device)  # B T C H W
 
-seg_mask = np.load("tests/seg_masks.npy")
-seg_mask = torch.tensor(seg_mask, dtype=torch.float32, device=device)[None, None]
+segm_mask = np.load("tests/seg_masks.npy")
+segm_mask = torch.tensor(segm_mask, dtype=torch.float32, device=device)[None, None]
 
 # Load the CoTracker models
 if RUN_OFFLINE:
@@ -38,13 +41,15 @@ if RUN_ONLINE:
     online_cotracker = torch.hub.load(
         "facebookresearch/co-tracker", "cotracker3_online"
     ).to(device)  # type: ignore
+    # need this because there's no masking for the online model
+    online_cotracker.forward = types.MethodType(masked_forward, online_cotracker)
 
 # Run Offline CoTracker:
 if RUN_OFFLINE:
     torch.cuda.reset_peak_memory_stats()
     start = time.time()
     pred_tracks, pred_visibility = offline_cotracker(
-        video, grid_size=grid_size, segm_mask=seg_mask
+        video, grid_size=grid_size, segm_mask=segm_mask
     )
     get_performance_metrics(start)
 
@@ -52,7 +57,9 @@ if RUN_OFFLINE:
 if RUN_ONLINE:
     torch.cuda.reset_peak_memory_stats()
     start = time.time()
-    online_cotracker(video_chunk=video, is_first_step=True, grid_size=grid_size)
+    online_cotracker(
+        video_chunk=video, is_first_step=True, grid_size=grid_size, segm_mask=segm_mask
+    )
     for ind in range(0, video.shape[1] - online_cotracker.step, online_cotracker.step):
         pred_tracks, pred_visibility = online_cotracker(
             video_chunk=video[:, ind : ind + online_cotracker.step * 2]

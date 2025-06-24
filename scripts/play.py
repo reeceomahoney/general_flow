@@ -68,7 +68,6 @@ import gymnasium as gym
 import torch
 
 import general_flow.envs  # noqa: F401
-import isaaclab_tasks  # noqa: F401
 from general_flow.runner import GeneralFlowRunner
 from isaaclab.envs import DirectMARLEnv, multi_agent_to_single_agent
 from isaaclab.utils.assets import retrieve_file_path
@@ -77,7 +76,22 @@ from isaaclab.utils.pretrained_checkpoint import get_published_pretrained_checkp
 from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
 from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg
 
+
 # PLACEHOLDER: Extension template (do not remove this comment)
+
+
+def save_frame(env):
+    import numpy as np
+    import imageio.v3 as iio
+
+    rgb = env.unwrapped.scene["tiled_camera"].data.output["rgb"]
+    rgb = rgb.squeeze().cpu().numpy()
+    depth = env.unwrapped.scene["tiled_camera"].data.output["depth"]
+    depth = (depth * 1000).squeeze().cpu().numpy().astype(np.uint16)
+    camera_in = env.unwrapped.scene["tiled_camera"].data.intrinsic_matrices[0]
+    iio.imwrite("demo/input/isaac/rgb.jpg", rgb)
+    iio.imwrite("demo/input/isaac/dep.png", depth)
+    np.save("demo/input/isaac/camera_in.npy", camera_in.cpu().numpy())
 
 
 def main():
@@ -116,7 +130,7 @@ def main():
     env = gym.make(
         args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None
     )
-    env.unwrapped.sim.set_camera_view([2.0, 2.0, 2.0], [0.0, 0.0, 0.0])  # type: ignore
+    env.unwrapped.sim.set_camera_view([1.5, 1.5, 1.5], [0.0, 0.0, 0.0])  # type: ignore
 
     # convert to single-agent instance if required by the RL algorithm
     if isinstance(env.unwrapped, DirectMARLEnv):
@@ -153,6 +167,8 @@ def main():
     # reset environment
     obs, _ = env.get_observations()
     timestep = 0
+
+    save_frame(env)
 
     # simulate environment
     while simulation_app.is_running():

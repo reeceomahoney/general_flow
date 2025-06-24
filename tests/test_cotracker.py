@@ -21,12 +21,12 @@ def get_performance_metrics(start_time):
     print(f"Total Time Taken: {total_time:.2f} seconds")
 
 
-frames = iio.imread("video.mp4", plugin="FFMPEG")  # plugin="pyav"
+frames = iio.imread("tests/video.mp4", plugin="FFMPEG")  # plugin="pyav"
 device = "cuda"
 grid_size = 80
 video = torch.tensor(frames).permute(0, 3, 1, 2)[None].float().to(device)  # B T C H W
 
-seg_mask = np.load("seg_masks.npy")
+seg_mask = np.load("tests/seg_masks.npy")
 seg_mask = torch.tensor(seg_mask, dtype=torch.float32, device=device)[None, None]
 
 # Load the CoTracker models
@@ -58,6 +58,10 @@ if RUN_ONLINE:
             video_chunk=video[:, ind : ind + online_cotracker.step * 2]
         )
     get_performance_metrics(start)
+
+# save data
+data = {"pred_tracks": pred_tracks, "pred_visibility": pred_visibility}
+torch.save(data, "tests/cotracker_output.pt")
 
 # Visualize the results
 vis = Visualizer(save_dir="./saved_videos", pad_value=0, linewidth=3)

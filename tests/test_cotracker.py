@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from cotracker.utils.visualizer import Visualizer
 
-from general_flow.masked_online_predictor import masked_forward
+from general_flow.masked_online_predictor import masked_forward, batched_forward_window
 
 RUN_OFFLINE = False
 RUN_ONLINE = True
@@ -26,7 +26,7 @@ def get_performance_metrics(start_time):
 
 frames = iio.imread("tests/video.mp4", plugin="FFMPEG")  # plugin="pyav"
 device = "cuda"
-grid_size = 80
+grid_size = 50
 video = torch.tensor(frames).permute(0, 3, 1, 2)[None].float().to(device)  # B T C H W
 
 segm_mask = np.load("tests/seg_masks.npy")
@@ -43,6 +43,7 @@ if RUN_ONLINE:
     ).to(device)  # type: ignore
     # need this because there's no masking for the online model
     online_cotracker.forward = types.MethodType(masked_forward, online_cotracker)
+    online_cotracker.model.forward_window = types.MethodType(batched_forward_window, online_cotracker.model)
 
 # Run Offline CoTracker:
 if RUN_OFFLINE:

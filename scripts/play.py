@@ -8,7 +8,6 @@
 """Launch Isaac Sim Simulator first."""
 
 import argparse
-import pickle
 
 from isaaclab.app import AppLauncher
 
@@ -65,6 +64,7 @@ simulation_app = app_launcher.app
 
 import os
 import time
+import types
 
 import gymnasium as gym
 import imageio.v3 as iio

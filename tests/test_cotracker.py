@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from cotracker.utils.visualizer import Visualizer
 
-from general_flow.masked_online_predictor import masked_forward, batched_forward_window
+from general_flow.cotracker_wrappers import masked_forward, batched_forward_window
 
 RUN_OFFLINE = False
 RUN_ONLINE = True

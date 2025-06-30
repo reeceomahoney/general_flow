@@ -67,6 +67,7 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
                 max_depenetration_velocity=5.0,
                 disable_gravity=False,
             ),
+            semantic_tags=[("class", "object")],
         ),
     )
 
@@ -191,8 +192,13 @@ class ObservationsCfg:
             self.enable_corruption = True
             self.concatenate_terms = True
 
+    @configclass
+    class CameraCfg(ObsGroup):
+        rgb = ObsTerm(func=mdp.camera_rgb)
+
     # observation groups
     policy: PolicyCfg = PolicyCfg()
+    camera: CameraCfg = CameraCfg()
 
 
 @configclass
@@ -201,49 +207,51 @@ class EventCfg:
 
     reset_all = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
 
-    reset_object_position = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "pose_range": {"x": (-0.1, 0.1), "y": (-0.25, 0.25), "z": (0.0, 0.0)},
-            "velocity_range": {},
-            "asset_cfg": SceneEntityCfg("object", body_names="Object"),
-        },
-    )
+    # reset_object_position = EventTerm(
+    #     func=mdp.reset_root_state_uniform,
+    #     mode="reset",
+    #     params={
+    #         "pose_range": {"x": (-0.1, 0.1), "y": (-0.25, 0.25), "z": (0.0, 0.0)},
+    #         "velocity_range": {},
+    #         "asset_cfg": SceneEntityCfg("object", body_names="Object"),
+    #     },
+    # )
 
 
 @configclass
 class RewardsCfg:
     """Reward terms for the MDP."""
 
-    reaching_object = RewTerm(
-        func=mdp.object_ee_distance, params={"std": 0.1}, weight=1.0
-    )
+    keypoint_tracking = RewTerm(func=mdp.keypoint_tracking, weight=1.0)
 
-    lifting_object = RewTerm(
-        func=mdp.object_is_lifted, params={"minimal_height": 0.04}, weight=15.0
-    )
-
-    object_goal_tracking = RewTerm(
-        func=mdp.object_goal_distance,
-        params={"std": 0.3, "minimal_height": 0.04, "command_name": "object_pose"},
-        weight=16.0,
-    )
-
-    object_goal_tracking_fine_grained = RewTerm(
-        func=mdp.object_goal_distance,
-        params={"std": 0.05, "minimal_height": 0.04, "command_name": "object_pose"},
-        weight=5.0,
-    )
-
-    # action penalty
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-3)
-
-    joint_vel = RewTerm(
-        func=mdp.joint_vel_l2,
-        weight=-1e-3,
-        params={"asset_cfg": SceneEntityCfg("robot")},
-    )
+    # reaching_object = RewTerm(
+    #     func=mdp.object_ee_distance, params={"std": 0.1}, weight=1.0
+    # )
+    #
+    # lifting_object = RewTerm(
+    #     func=mdp.object_is_lifted, params={"minimal_height": 0.04}, weight=15.0
+    # )
+    #
+    # object_goal_tracking = RewTerm(
+    #     func=mdp.object_goal_distance,
+    #     params={"std": 0.3, "minimal_height": 0.04, "command_name": "object_pose"},
+    #     weight=16.0,
+    # )
+    #
+    # object_goal_tracking_fine_grained = RewTerm(
+    #     func=mdp.object_goal_distance,
+    #     params={"std": 0.05, "minimal_height": 0.04, "command_name": "object_pose"},
+    #     weight=5.0,
+    # )
+    #
+    # # action penalty
+    # action_rate = RewTerm(func=mdp.action_rate_l2, weight=-1e-3)
+    #
+    # joint_vel = RewTerm(
+    #     func=mdp.joint_vel_l2,
+    #     weight=-1e-3,
+    #     params={"asset_cfg": SceneEntityCfg("robot")},
+    # )
 
 
 @configclass
@@ -280,27 +288,27 @@ class FrankaLiftEnvCfg(ManagerBasedRLEnvCfg):
 
     def __post_init__(self):
         """Post initialization."""
-        # self.scene.tiled_camera = TiledCameraCfg(
-        #     prim_path="{ENV_REGEX_NS}/Camera",
-        #     offset=TiledCameraCfg.OffsetCfg(
-        #         pos=(2.5, 0.0, 1.5),
-        #         rot=(0.62, 0.34, 0.34, 0.62),
-        #         convention="opengl",
-        #         # pos=(1.4, 1.8, 1.2),
-        #         # rot=(-0.1393, 0.2025, 0.8185, -0.5192),
-        #         # convention="ros",
-        #     ),
-        #     data_types=["depth", "semantic_segmentation"],
-        #     colorize_semantic_segmentation=False,
-        #     spawn=sim_utils.PinholeCameraCfg(
-        #         focal_length=50.0,
-        #         focus_distance=400.0,
-        #         horizontal_aperture=20.955,
-        #         clipping_range=(0.1, 3.0),
-        #     ),
-        #     width=84,
-        #     height=84,
-        # )
+        self.scene.tiled_camera = TiledCameraCfg(
+            prim_path="{ENV_REGEX_NS}/Camera",
+            offset=TiledCameraCfg.OffsetCfg(
+                # pos=(2.5, 0.0, 1.5),
+                # rot=(0.62, 0.34, 0.34, 0.62),
+                # convention="opengl",
+                pos=(1.4, 1.8, 1.2),
+                rot=(-0.1393, 0.2025, 0.8185, -0.5192),
+                convention="ros",
+            ),
+            data_types=["rgb", "depth", "semantic_segmentation"],
+            colorize_semantic_segmentation=False,
+            spawn=sim_utils.PinholeCameraCfg(
+                focal_length=50.0,
+                focus_distance=400.0,
+                horizontal_aperture=20.955,
+                clipping_range=(0.1, 3.0),
+            ),
+            width=512,
+            height=384,
+        )
         self.scene.robot.spawn.rigid_props.disable_gravity = False
         self.scene.robot.actuators["panda_shoulder"].stiffness = 0.0
         self.scene.robot.actuators["panda_shoulder"].damping = 0.0

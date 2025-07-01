@@ -2,6 +2,7 @@ import types
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from rsl_rl.algorithms import PPO
 
 from general_flow.cotracker_wrappers import batched_forward_window, masked_forward
@@ -33,9 +34,10 @@ class OpticalFlowPPO(PPO):
     def load_cotracker(self):
         # load the keypoint tracking data and segmentation masked_forward
         # these are hard coded for now but should come from flow prediction model
-        self.cotracker_data = torch.load(
+        cotracker_data = torch.load(
             "tests/cotracker_output.pt", map_location=self.device
         )
+        self.cotracker_data = self._upsample_timesteps(cotracker_data["pred_tracks"], upsample_factor=5)
         segm_mask = np.load("tests/seg_masks.npy")
         self.segm_mask = torch.tensor(segm_mask, dtype=torch.float32, device=self.device)[None, None]
 
@@ -46,6 +48,14 @@ class OpticalFlowPPO(PPO):
         cotracker_model.forward = types.MethodType(masked_forward, cotracker_model)
         cotracker_model.model.forward_window = types.MethodType(batched_forward_window, cotracker_model.model)
         self.cotracker_model = cotracker_model
+
+    def _upsample_timesteps(self, x, upsample_factor):
+        # we need this to get the data from 10 fps to 50 fps
+        b, t, c1, c2 = x.shape
+        x_reshaped = x.permute(0, 2, 3, 1).reshape(b * c1 * c2, 1, t)
+        x_upsampled = F.interpolate(x_reshaped, scale_factor=upsample_factor, mode='linear', align_corners=False)
+        new_l = x_upsampled.shape[2]
+        return x_upsampled.reshape(b, c1, c2, new_l).permute(0, 3, 1, 2)
 
     def act(self, obs, critic_obs, camera_obs):
         if self.policy.is_recurrent:
@@ -62,7 +72,7 @@ class OpticalFlowPPO(PPO):
         self.transition.camera_observations = camera_obs
         return self.transition.actions
 
-    def compute_returns(self, last_critic_obs):
+    def compute_returns(self, last_critic_obs, timesteps):
         # compute value for the last step
         last_values = self.policy.evaluate(last_critic_obs).detach()
         video = self.storage.camera_observations
@@ -77,7 +87,8 @@ class OpticalFlowPPO(PPO):
                 video_chunk=video[:, ind : ind + self.cotracker_model.step * 2]
             )
 
-        gt = self.cotracker_data["pred_tracks"][:, :self.storage.num_transitions_per_env]
+        # using timesteps[0] is a hack as these are all the same for now, will need to fix when we add terminations
+        gt = self.cotracker_data[:, timesteps[0]-self.storage.num_transitions_per_env:timesteps[0]]
         scale = torch.tensor(
             [video.shape[3], video.shape[4]], device=self.device
         ).view(1, 1, 1, 2)
@@ -88,3 +99,5 @@ class OpticalFlowPPO(PPO):
         self.storage.compute_returns(
             last_values, self.gamma, self.lam, normalize_advantage=not self.normalize_advantage_per_mini_batch
         )
+
+        return rewards

@@ -78,10 +78,11 @@ class OpticalFlowPPO(PPO):
             )
 
         gt = self.cotracker_data["pred_tracks"][:, :self.storage.num_transitions_per_env]
+        scale = torch.tensor(
+            [video.shape[3], video.shape[4]], device=self.device
+        ).view(1, 1, 1, 2)
 
-        # TODO: normalize gt and pred tracks by heigth and width (units are pixels)
-
-        rewards = torch.norm(pred_tracks - gt, dim=-1).mean(dim=-1, keepdim=True)
+        rewards = torch.norm((pred_tracks - gt) / scale, dim=-1).mean(dim=-1, keepdim=True)
         self.storage.rewards = rewards.permute(1, 0, 2)
 
         self.storage.compute_returns(

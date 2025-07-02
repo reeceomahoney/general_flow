@@ -26,7 +26,7 @@ class OpticalFlowPPO(PPO):
         else:
             rnd_state_shape = None
         # create rollout storage
-        self.storage = OpticalFlowRolloutStorage(
+        self.storage: OpticalFlowRolloutStorage = OpticalFlowRolloutStorage(
             training_type,
             num_envs,
             num_transitions_per_env,
@@ -92,6 +92,7 @@ class OpticalFlowPPO(PPO):
     def compute_returns(self, last_critic_obs, timesteps):
         video = self.storage.camera_observations
         video = video.permute(1, 0, 4, 2, 3).float()
+        H, W = video.shape[-2:]
         segm_mask = self.storage.segm_mask.squeeze()[:, None]
 
         # using timesteps[0] is a hack as these are all the same for now, will need to fix when we add terminations
@@ -108,8 +109,6 @@ class OpticalFlowPPO(PPO):
         else:
             video_chunks.append(video)
 
-        # TODO: we need to recompute the segm_mask for each episode
-
         # run the CoTracker model on the video chunks
         tracks_list = []
         for v in video_chunks:
@@ -117,35 +116,23 @@ class OpticalFlowPPO(PPO):
                 video_chunk=v, is_first_step=True, grid_size=50, segm_mask=segm_mask
             )
             if v.shape[1] <= self.cotracker_model.step:
-                pred_tracks, pred_visibility = self.cotracker_model(video_chunk=v)
+                pred_tracks, _ = self.cotracker_model(video_chunk=v)
             else:
                 for ind in range(
                     0, v.shape[1] - self.cotracker_model.step, self.cotracker_model.step
                 ):
-                    pred_tracks, pred_visibility = self.cotracker_model(
+                    pred_tracks, _ = self.cotracker_model(
                         video_chunk=v[:, ind : ind + self.cotracker_model.step * 2]
                     )
             tracks_list.append(pred_tracks)
 
-        tracks = torch.cat(tracks_list, dim=1)
-
-        # TODO: make dummy gt to follow instead
-
         gt_tracks = []
-        delta = self.storage.num_transitions_per_env
-        if self.storage.dones.any() and curr_t != 0:
-            gt_tracks.append(self.cotracker_data[:, -split_idx:])
-            gt_tracks.append(self.cotracker_data[:, :curr_t])
-        elif curr_t == 0:
-            gt_tracks.append(self.cotracker_data[:, -delta:])
-        else:
-            gt_tracks.append(self.cotracker_data[:, curr_t - delta : curr_t])
-
+        for track in tracks_list:
+            gt_tracks.append(self._create_reference_trajectory(track))
         gt = torch.cat(gt_tracks, dim=1)
-        scale = torch.tensor([video.shape[3], video.shape[4]], device=self.device).view(
-            1, 1, 1, 2
-        )
 
+        tracks = torch.cat(tracks_list, dim=1)
+        scale = torch.tensor([H, W], device=self.device).view(1, 1, 1, 2)
         rewards = torch.norm((tracks - gt) / scale, dim=-1).mean(dim=-1, keepdim=True)
         self.storage.rewards = rewards.permute(1, 0, 2)
 
@@ -160,3 +147,24 @@ class OpticalFlowPPO(PPO):
         )
 
         return rewards
+
+    def _create_reference_trajectory(self, trajectories: torch.Tensor) -> torch.Tensor:
+        T = trajectories.shape[1]
+
+        initial_positions = trajectories[:, 0:1, :, :]
+
+        initial_x = initial_positions[..., 0:1]
+        ref_x = initial_x.expand(-1, T, -1, -1)
+
+        initial_y = initial_positions[..., 1:2]
+
+        time_steps = torch.arange(T, device=self.device)
+        y_offset = 5.0 * time_steps.view(1, T, 1, 1)
+
+        ref_y = initial_y - y_offset
+
+        reference_trajectory = torch.cat((ref_x, ref_y), dim=-1)
+        # This is a hack, we actually want to clip if any points are negative
+        reference_trajectory = torch.clamp(reference_trajectory, min=0)
+
+        return reference_trajectory

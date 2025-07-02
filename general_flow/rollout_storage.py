@@ -45,35 +45,64 @@ class OpticalFlowRolloutStorage(RolloutStorage):
         self.actions_shape = actions_shape
 
         # Core
-        self.observations = torch.zeros(num_transitions_per_env, num_envs, *obs_shape, device=self.device)
+        self.observations = torch.zeros(
+            num_transitions_per_env, num_envs, *obs_shape, device=self.device
+        )
         if privileged_obs_shape is not None:
             self.privileged_observations = torch.zeros(
-                num_transitions_per_env, num_envs, *privileged_obs_shape, device=self.device
+                num_transitions_per_env,
+                num_envs,
+                *privileged_obs_shape,
+                device=self.device,
             )
         else:
             self.privileged_observations = None
         self.camera_shape = (384, 512, 3)
-        self.camera_observations = torch.zeros(num_transitions_per_env, num_envs, *self.camera_shape, device=self.device)
-        self.rewards = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
-        self.actions = torch.zeros(num_transitions_per_env, num_envs, *actions_shape, device=self.device)
-        self.dones = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device).byte()
+        self.camera_observations = torch.zeros(
+            num_transitions_per_env, num_envs, *self.camera_shape, device=self.device
+        )
+        self.rewards = torch.zeros(
+            num_transitions_per_env, num_envs, 1, device=self.device
+        )
+        self.actions = torch.zeros(
+            num_transitions_per_env, num_envs, *actions_shape, device=self.device
+        )
+        self.dones = torch.zeros(
+            num_transitions_per_env, num_envs, 1, device=self.device
+        ).byte()
 
         # for distillation
         if training_type == "distillation":
-            self.privileged_actions = torch.zeros(num_transitions_per_env, num_envs, *actions_shape, device=self.device)
+            self.privileged_actions = torch.zeros(
+                num_transitions_per_env, num_envs, *actions_shape, device=self.device
+            )
 
         # for reinforcement learning
         if training_type == "rl":
-            self.values = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
-            self.actions_log_prob = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
-            self.mu = torch.zeros(num_transitions_per_env, num_envs, *actions_shape, device=self.device)
-            self.sigma = torch.zeros(num_transitions_per_env, num_envs, *actions_shape, device=self.device)
-            self.returns = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
-            self.advantages = torch.zeros(num_transitions_per_env, num_envs, 1, device=self.device)
+            self.values = torch.zeros(
+                num_transitions_per_env, num_envs, 1, device=self.device
+            )
+            self.actions_log_prob = torch.zeros(
+                num_transitions_per_env, num_envs, 1, device=self.device
+            )
+            self.mu = torch.zeros(
+                num_transitions_per_env, num_envs, *actions_shape, device=self.device
+            )
+            self.sigma = torch.zeros(
+                num_transitions_per_env, num_envs, *actions_shape, device=self.device
+            )
+            self.returns = torch.zeros(
+                num_transitions_per_env, num_envs, 1, device=self.device
+            )
+            self.advantages = torch.zeros(
+                num_transitions_per_env, num_envs, 1, device=self.device
+            )
 
         # For RND
         if rnd_state_shape is not None:
-            self.rnd_state = torch.zeros(num_transitions_per_env, num_envs, *rnd_state_shape, device=self.device)
+            self.rnd_state = torch.zeros(
+                num_transitions_per_env, num_envs, *rnd_state_shape, device=self.device
+            )
 
         # For RNN networks
         self.saved_hidden_states_a = None
@@ -85,13 +114,19 @@ class OpticalFlowRolloutStorage(RolloutStorage):
     def add_transitions(self, transition: Transition):
         # check if the transition is valid
         if self.step >= self.num_transitions_per_env:
-            raise OverflowError("Rollout buffer overflow! You should call clear() before adding new transitions.")
+            raise OverflowError(
+                "Rollout buffer overflow! You should call clear() before adding new transitions."
+            )
 
         # Core
         self.observations[self.step].copy_(transition.observations)
         if self.privileged_observations is not None:
-            self.privileged_observations[self.step].copy_(transition.privileged_observations)
-        self.camera_observations[self.step].copy_(transition.camera_observations.view(-1, *self.camera_shape))
+            self.privileged_observations[self.step].copy_(
+                transition.privileged_observations
+            )
+        self.camera_observations[self.step].copy_(
+            transition.camera_observations.view(-1, *self.camera_shape)
+        )
         self.actions[self.step].copy_(transition.actions)
         self.rewards[self.step].copy_(transition.rewards.view(-1, 1))
         self.dones[self.step].copy_(transition.dones.view(-1, 1))
@@ -103,7 +138,9 @@ class OpticalFlowRolloutStorage(RolloutStorage):
         # for reinforcement learning
         if self.training_type == "rl":
             self.values[self.step].copy_(transition.values)
-            self.actions_log_prob[self.step].copy_(transition.actions_log_prob.view(-1, 1))
+            self.actions_log_prob[self.step].copy_(
+                transition.actions_log_prob.view(-1, 1)
+            )
             self.mu[self.step].copy_(transition.action_mean)
             self.sigma[self.step].copy_(transition.action_sigma)
 

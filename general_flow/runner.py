@@ -153,23 +153,35 @@ class GeneralFlowRunner(OnPolicyRunner):
             if self.logger_type == "neptune":
                 from rsl_rl.utils.neptune_utils import NeptuneSummaryWriter
 
-                self.writer = NeptuneSummaryWriter(log_dir=self.log_dir, flush_secs=10, cfg=self.cfg)
-                self.writer.log_config(self.env.cfg, self.cfg, self.alg_cfg, self.policy_cfg)
+                self.writer = NeptuneSummaryWriter(
+                    log_dir=self.log_dir, flush_secs=10, cfg=self.cfg
+                )
+                self.writer.log_config(
+                    self.env.cfg, self.cfg, self.alg_cfg, self.policy_cfg
+                )
             elif self.logger_type == "wandb":
                 from rsl_rl.utils.wandb_utils import WandbSummaryWriter
 
-                self.writer = WandbSummaryWriter(log_dir=self.log_dir, flush_secs=10, cfg=self.cfg)
-                self.writer.log_config(self.env.cfg, self.cfg, self.alg_cfg, self.policy_cfg)
+                self.writer = WandbSummaryWriter(
+                    log_dir=self.log_dir, flush_secs=10, cfg=self.cfg
+                )
+                self.writer.log_config(
+                    self.env.cfg, self.cfg, self.alg_cfg, self.policy_cfg
+                )
             elif self.logger_type == "tensorboard":
                 from torch.utils.tensorboard import SummaryWriter
 
                 self.writer = SummaryWriter(log_dir=self.log_dir, flush_secs=10)
             else:
-                raise ValueError("Logger type not found. Please choose 'neptune', 'wandb' or 'tensorboard'.")
+                raise ValueError(
+                    "Logger type not found. Please choose 'neptune', 'wandb' or 'tensorboard'."
+                )
 
         # check if teacher is loaded
         if self.training_type == "distillation" and not self.alg.policy.loaded_teacher:
-            raise ValueError("Teacher model parameters not loaded. Please load a teacher model to distill.")
+            raise ValueError(
+                "Teacher model parameters not loaded. Please load a teacher model to distill."
+            )
 
         # randomize initial episode lengths (for exploration)
         if init_at_random_ep_len:
@@ -187,15 +199,23 @@ class GeneralFlowRunner(OnPolicyRunner):
         ep_infos = []
         rewbuffer = deque(maxlen=100)
         lenbuffer = deque(maxlen=100)
-        cur_reward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
-        cur_episode_length = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
+        cur_reward_sum = torch.zeros(
+            self.env.num_envs, dtype=torch.float, device=self.device
+        )
+        cur_episode_length = torch.zeros(
+            self.env.num_envs, dtype=torch.float, device=self.device
+        )
 
         # create buffers for logging extrinsic and intrinsic rewards
         if self.alg.rnd:
             erewbuffer = deque(maxlen=100)
             irewbuffer = deque(maxlen=100)
-            cur_ereward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
-            cur_ireward_sum = torch.zeros(self.env.num_envs, dtype=torch.float, device=self.device)
+            cur_ereward_sum = torch.zeros(
+                self.env.num_envs, dtype=torch.float, device=self.device
+            )
+            cur_ireward_sum = torch.zeros(
+                self.env.num_envs, dtype=torch.float, device=self.device
+            )
 
         # Ensure all parameters are in-synced
         if self.is_distributed:
@@ -213,16 +233,26 @@ class GeneralFlowRunner(OnPolicyRunner):
             with torch.inference_mode():
                 for _ in range(self.num_steps_per_env):
                     # Sample actions
-                    actions = self.alg.act(obs, privileged_obs, extras["observations"]["camera"])
+                    actions = self.alg.act(
+                        obs, privileged_obs, extras["observations"]["camera"]
+                    )
                     # Step the environment
-                    obs, rewards, dones, infos = self.env.step(actions.to(self.env.device))
+                    obs, rewards, dones, infos = self.env.step(
+                        actions.to(self.env.device)
+                    )
                     # Move to device
-                    obs, rewards, dones = (obs.to(self.device), rewards.to(self.device), dones.to(self.device))
+                    obs, rewards, dones = (
+                        obs.to(self.device),
+                        rewards.to(self.device),
+                        dones.to(self.device),
+                    )
                     # perform normalization
                     obs = self.obs_normalizer(obs)
                     if self.privileged_obs_type is not None:
                         privileged_obs = self.privileged_obs_normalizer(
-                            infos["observations"][self.privileged_obs_type].to(self.device)
+                            infos["observations"][self.privileged_obs_type].to(
+                                self.device
+                            )
                         )
                     else:
                         privileged_obs = obs
@@ -231,7 +261,9 @@ class GeneralFlowRunner(OnPolicyRunner):
                     self.alg.process_env_step(rewards, dones, infos)
 
                     # Extract intrinsic rewards (only for logging)
-                    intrinsic_rewards = self.alg.intrinsic_rewards if self.alg.rnd else None
+                    intrinsic_rewards = (
+                        self.alg.intrinsic_rewards if self.alg.rnd else None
+                    )
 
                     # book keeping
                     if self.log_dir is not None:
@@ -252,13 +284,19 @@ class GeneralFlowRunner(OnPolicyRunner):
                         # -- common
                         new_ids = (dones > 0).nonzero(as_tuple=False)
                         # rewbuffer.extend(cur_reward_sum[new_ids][:, 0].cpu().numpy().tolist())
-                        lenbuffer.extend(cur_episode_length[new_ids][:, 0].cpu().numpy().tolist())
+                        lenbuffer.extend(
+                            cur_episode_length[new_ids][:, 0].cpu().numpy().tolist()
+                        )
                         # cur_reward_sum[new_ids] = 0
                         cur_episode_length[new_ids] = 0
                         # -- intrinsic and extrinsic rewards
                         if self.alg.rnd:
-                            erewbuffer.extend(cur_ereward_sum[new_ids][:, 0].cpu().numpy().tolist())
-                            irewbuffer.extend(cur_ireward_sum[new_ids][:, 0].cpu().numpy().tolist())
+                            erewbuffer.extend(
+                                cur_ereward_sum[new_ids][:, 0].cpu().numpy().tolist()
+                            )
+                            irewbuffer.extend(
+                                cur_ireward_sum[new_ids][:, 0].cpu().numpy().tolist()
+                            )
                             cur_ereward_sum[new_ids] = 0
                             cur_ireward_sum[new_ids] = 0
 
@@ -268,9 +306,13 @@ class GeneralFlowRunner(OnPolicyRunner):
 
                 # compute returns
                 if self.training_type == "rl":
-                    rewards = self.alg.compute_returns(privileged_obs, self.env.episode_length_buf)
-                    cur_reward_sum += rewards.sum(dim=(1,2))
-                    rewbuffer.extend(cur_reward_sum[new_ids][:, 0].cpu().numpy().tolist())
+                    rewards = self.alg.compute_returns(
+                        privileged_obs, self.env.episode_length_buf
+                    )
+                    cur_reward_sum += rewards.sum(dim=(1, 2))
+                    rewbuffer.extend(
+                        cur_reward_sum[new_ids][:, 0].cpu().numpy().tolist()
+                    )
                     cur_reward_sum[new_ids] = 0
 
             # update policy
@@ -300,4 +342,8 @@ class GeneralFlowRunner(OnPolicyRunner):
 
         # Save the final model after training
         if self.log_dir is not None and not self.disable_logs:
-            self.save(os.path.join(self.log_dir, f"model_{self.current_learning_iteration}.pt"))
+            self.save(
+                os.path.join(
+                    self.log_dir, f"model_{self.current_learning_iteration}.pt"
+                )
+            )

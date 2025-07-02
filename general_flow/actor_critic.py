@@ -1,10 +1,3 @@
-# Copyright (c) 2021-2025, ETH Zurich and NVIDIA CORPORATION
-# All rights reserved.
-#
-# SPDX-License-Identifier: BSD-3-Clause
-
-from __future__ import annotations
-
 import math
 
 import torch
@@ -166,7 +159,7 @@ class ConvActorCritic(nn.Module):
             feature_list.append(visual_features)
 
         if self.state_encoder:
-            state_obs = observations[:, -self.state_dim:]
+            state_obs = observations[:, -self.state_dim :]
             state_features = self.state_encoder(state_obs)
             feature_list.append(state_features)
 

@@ -9,6 +9,7 @@ class OpticalFlowRolloutStorage(RolloutStorage):
             self.observations = None
             self.privileged_observations = None
             self.camera_observations = None
+            self.segm_mask = None
             self.actions = None
             self.privileged_actions = None
             self.rewards = None
@@ -60,6 +61,13 @@ class OpticalFlowRolloutStorage(RolloutStorage):
         self.camera_shape = (384, 512, 3)
         self.camera_observations = torch.zeros(
             num_transitions_per_env, num_envs, *self.camera_shape, device=self.device
+        )
+        self.segm_mask = torch.zeros(
+            num_envs,
+            self.camera_shape[0],
+            self.camera_shape[1],
+            1,
+            device=self.device,
         )
         self.rewards = torch.zeros(
             num_transitions_per_env, num_envs, 1, device=self.device
@@ -124,12 +132,13 @@ class OpticalFlowRolloutStorage(RolloutStorage):
             self.privileged_observations[self.step].copy_(
                 transition.privileged_observations
             )
-        self.camera_observations[self.step].copy_(
-            transition.camera_observations.view(-1, *self.camera_shape)
-        )
+        self.camera_observations[self.step].copy_(transition.camera_observations)
         self.actions[self.step].copy_(transition.actions)
         self.rewards[self.step].copy_(transition.rewards.view(-1, 1))
         self.dones[self.step].copy_(transition.dones.view(-1, 1))
+
+        if self.step == 0:
+            self.segm_mask.copy_(transition.segm_mask)
 
         # for distillation
         if self.training_type == "distillation":

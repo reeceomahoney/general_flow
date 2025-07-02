@@ -9,7 +9,12 @@ if TYPE_CHECKING:
 
 
 def camera_rgb(env: ManagerBasedRLEnv) -> torch.Tensor:
-    return env.scene["tiled_camera"].data.output["rgb"].flatten(start_dim=1)
+    return env.scene["tiled_camera"].data.output["rgb"]
+
+
+def camera_segm_mask(env: ManagerBasedRLEnv) -> torch.Tensor:
+    segm = env.scene["tiled_camera"].data.output["semantic_segmentation"]
+    return segm == 3
 
 
 def camera_rgbd(env: ManagerBasedRLEnv) -> torch.Tensor:

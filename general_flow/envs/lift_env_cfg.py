@@ -195,6 +195,10 @@ class ObservationsCfg:
     @configclass
     class CameraCfg(ObsGroup):
         rgb = ObsTerm(func=mdp.camera_rgb)
+        segm_mask = ObsTerm(func=mdp.camera_segm_mask)
+
+        def __post_init__(self):
+            self.concatenate_terms = False
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
@@ -298,7 +302,7 @@ class FrankaLiftEnvCfg(ManagerBasedRLEnvCfg):
                 rot=(-0.1393, 0.2025, 0.8185, -0.5192),
                 convention="ros",
             ),
-            data_types=["rgb", "depth", "semantic_segmentation"],
+            data_types=["rgb", "semantic_segmentation"],
             colorize_semantic_segmentation=False,
             spawn=sim_utils.PinholeCameraCfg(
                 focal_length=50.0,

@@ -85,14 +85,14 @@ class OpticalFlowPPO(PPO):
         # need to record obs and critic_obs before env.step()
         self.transition.observations = obs
         self.transition.privileged_observations = critic_obs
-        self.transition.camera_observations = camera_obs
+        self.transition.camera_observations = camera_obs["rgb"]
+        self.transition.segm_mask = camera_obs["segm_mask"]
         return self.transition.actions
 
     def compute_returns(self, last_critic_obs, timesteps):
-        # compute value for the last step
-        last_values = self.policy.evaluate(last_critic_obs).detach()
         video = self.storage.camera_observations
         video = video.permute(1, 0, 4, 2, 3).float()
+        segm_mask = self.storage.segm_mask.squeeze()[:, None]
 
         # using timesteps[0] is a hack as these are all the same for now, will need to fix when we add terminations
         curr_t = timesteps[0]
@@ -114,10 +114,7 @@ class OpticalFlowPPO(PPO):
         tracks_list = []
         for v in video_chunks:
             self.cotracker_model(
-                video_chunk=v,
-                is_first_step=True,
-                grid_size=50,
-                segm_mask=self.segm_mask,
+                video_chunk=v, is_first_step=True, grid_size=50, segm_mask=segm_mask
             )
             if v.shape[1] <= self.cotracker_model.step:
                 pred_tracks, pred_visibility = self.cotracker_model(video_chunk=v)
@@ -151,6 +148,9 @@ class OpticalFlowPPO(PPO):
 
         rewards = torch.norm((tracks - gt) / scale, dim=-1).mean(dim=-1, keepdim=True)
         self.storage.rewards = rewards.permute(1, 0, 2)
+
+        # compute value for the last step
+        last_values = self.policy.evaluate(last_critic_obs).detach()
 
         self.storage.compute_returns(
             last_values,

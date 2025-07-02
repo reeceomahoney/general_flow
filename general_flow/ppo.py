@@ -78,22 +78,55 @@ class OpticalFlowPPO(PPO):
         video = self.storage.camera_observations
         video = video.permute(1, 0, 4, 2, 3).float()
 
-        # Initialize online processing
-        self.cotracker_model(video_chunk=video, is_first_step=True, grid_size=50, segm_mask=self.segm_mask)
-
-        # Process the video
-        for ind in range(0, video.shape[1] - self.cotracker_model.step, self.cotracker_model.step):
-            pred_tracks, pred_visibility = self.cotracker_model(
-                video_chunk=video[:, ind : ind + self.cotracker_model.step * 2]
-            )
-
         # using timesteps[0] is a hack as these are all the same for now, will need to fix when we add terminations
-        gt = self.cotracker_data[:, timesteps[0]-self.storage.num_transitions_per_env:timesteps[0]]
+        curr_t = timesteps[0]
+
+        # split the video into chunks based on dones
+        video_chunks = []
+        if self.storage.dones.any() and curr_t != 0:
+            split_idx = self.storage.dones.nonzero(as_tuple=True)[0]
+            split_idx = int(split_idx[0] + 1)
+            ep1, ep2 = video[:, :split_idx], video[:, split_idx:]
+            video_chunks.append(ep1)
+            video_chunks.append(ep2)
+        else:
+            video_chunks.append(video)
+        
+        # TODO: we need to recompute the segm_mask for each episode
+
+        # run the CoTracker model on the video chunks
+        tracks_list = []
+        for v in video_chunks:
+            self.cotracker_model(video_chunk=v, is_first_step=True, grid_size=50, segm_mask=self.segm_mask)
+            if v.shape[1] <= self.cotracker_model.step:
+                pred_tracks, pred_visibility = self.cotracker_model(
+                    video_chunk=v
+                )
+            else:
+                for ind in range(0, v.shape[1] - self.cotracker_model.step, self.cotracker_model.step):
+                    pred_tracks, pred_visibility = self.cotracker_model(
+                        video_chunk=v[:, ind : ind + self.cotracker_model.step * 2]
+                    )
+            tracks_list.append(pred_tracks)
+
+        tracks = torch.cat(tracks_list, dim=1)
+
+        gt_tracks = []
+        delta = self.storage.num_transitions_per_env
+        if self.storage.dones.any() and curr_t != 0:
+            gt_tracks.append(self.cotracker_data[:, -split_idx:])
+            gt_tracks.append(self.cotracker_data[:, :curr_t])
+        elif curr_t == 0:
+            gt_tracks.append(self.cotracker_data[:, -delta:])
+        else:
+            gt_tracks.append(self.cotracker_data[:, curr_t - delta : curr_t])
+
+        gt = torch.cat(gt_tracks, dim=1)
         scale = torch.tensor(
             [video.shape[3], video.shape[4]], device=self.device
         ).view(1, 1, 1, 2)
 
-        rewards = torch.norm((pred_tracks - gt) / scale, dim=-1).mean(dim=-1, keepdim=True)
+        rewards = torch.norm((tracks - gt) / scale, dim=-1).mean(dim=-1, keepdim=True)
         self.storage.rewards = rewards.permute(1, 0, 2)
 
         self.storage.compute_returns(

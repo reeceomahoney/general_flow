@@ -134,6 +134,7 @@ class OpticalFlowPPO(PPO):
         tracks = torch.cat(tracks_list, dim=1)
         scale = torch.tensor([H, W], device=self.device).view(1, 1, 1, 2)
         rewards = torch.norm((tracks - gt) / scale, dim=-1).mean(dim=-1, keepdim=True)
+        rewards = torch.exp(-rewards / 0.1)
         self.storage.rewards = rewards.permute(1, 0, 2)
 
         # compute value for the last step

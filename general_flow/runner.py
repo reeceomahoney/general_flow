@@ -229,9 +229,10 @@ class GeneralFlowRunner(OnPolicyRunner):
         tot_iter = start_iter + num_learning_iterations
         for it in range(start_iter, tot_iter):
             start = time.time()
+            done_idx = None
             # Rollout
             with torch.inference_mode():
-                for _ in range(self.num_steps_per_env):
+                for step in range(self.num_steps_per_env):
                     # Sample actions
                     actions = self.alg.act(
                         obs, privileged_obs, extras["observations"]["camera"]
@@ -283,6 +284,8 @@ class GeneralFlowRunner(OnPolicyRunner):
                         # Clear data for completed episodes
                         # -- common
                         new_ids = (dones > 0).nonzero(as_tuple=False)
+                        if new_ids.numel() > 0:
+                            done_idx = step
                         # rewbuffer.extend(cur_reward_sum[new_ids][:, 0].cpu().numpy().tolist())
                         lenbuffer.extend(
                             cur_episode_length[new_ids][:, 0].cpu().numpy().tolist()
@@ -309,11 +312,12 @@ class GeneralFlowRunner(OnPolicyRunner):
                     rewards = self.alg.compute_returns(
                         privileged_obs, self.env.episode_length_buf
                     )
-                    cur_reward_sum += rewards.sum(dim=(1, 2))
-                    rewbuffer.extend(
-                        cur_reward_sum[new_ids][:, 0].cpu().numpy().tolist()
-                    )
-                    cur_reward_sum[new_ids] = 0
+                    if done_idx is not None:
+                        cur_reward_sum += rewards[:, : done_idx + 1].sum(dim=(1, 2))
+                        rewbuffer.extend(cur_reward_sum.cpu().numpy().tolist())
+                        cur_reward_sum = rewards[:, done_idx + 1 :].sum(dim=(1, 2))
+                    else:
+                        cur_reward_sum += rewards.sum(dim=(1, 2))
 
             # update policy
             loss_dict = self.alg.update()

@@ -3,9 +3,13 @@ from isaaclab.assets import (
     AssetBaseCfg,
     RigidObjectCfg,
 )
+from isaaclab.controllers.differential_ik_cfg import DifferentialIKControllerCfg
 from isaaclab.controllers.operational_space_cfg import OperationalSpaceControllerCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
-from isaaclab.envs.mdp.actions.actions_cfg import OperationalSpaceControllerActionCfg
+from isaaclab.envs.mdp.actions.actions_cfg import (
+    DifferentialInverseKinematicsActionCfg,
+    OperationalSpaceControllerActionCfg,
+)
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
@@ -163,6 +167,13 @@ class ActionsCfg:
         ),
         nullspace_joint_pos_target="default",
     )
+    # arm_action = DifferentialInverseKinematicsActionCfg(
+    #     asset_name="robot",
+    #     joint_names=["panda_joint.*"],
+    #     body_name="panda_hand",
+    #     controller=DifferentialIKControllerCfg(command_type="pose", use_relative_mode=False, ik_method="dls"),
+    #     body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.107]),
+    # )
     gripper_action = mdp.BinaryJointPositionActionCfg(
         asset_name="robot",
         joint_names=["panda_finger.*"],
@@ -292,6 +303,13 @@ class FrankaLiftEnvCfg(ManagerBasedRLEnvCfg):
 
     def __post_init__(self):
         """Post initialization."""
+        MAPPING = {
+            "class:object": (255, 36, 66, 255),
+            "class:table": (255, 237, 218, 255),
+            "class:robot": (125, 125, 125, 255),
+            "class:UNLABELLED": (125, 125, 125, 255),
+            "class:BACKGROUND": (10, 10, 10, 255),
+        }
         self.scene.tiled_camera = TiledCameraCfg(
             prim_path="{ENV_REGEX_NS}/Camera",
             offset=TiledCameraCfg.OffsetCfg(
@@ -302,8 +320,9 @@ class FrankaLiftEnvCfg(ManagerBasedRLEnvCfg):
                 rot=(-0.1393, 0.2025, 0.8185, -0.5192),
                 convention="ros",
             ),
-            data_types=["rgb", "semantic_segmentation"],
-            colorize_semantic_segmentation=False,
+            data_types=["rgb", "depth", "semantic_segmentation"],
+            # colorize_semantic_segmentation=False,
+            semantic_segmentation_mapping=MAPPING,
             spawn=sim_utils.PinholeCameraCfg(
                 focal_length=50.0,
                 focus_distance=400.0,
@@ -313,6 +332,7 @@ class FrankaLiftEnvCfg(ManagerBasedRLEnvCfg):
             width=512,
             height=384,
         )
+        self.scene.robot.spawn.semantic_tags = [("class", "robot")]
         self.scene.robot.spawn.rigid_props.disable_gravity = False
         self.scene.robot.actuators["panda_shoulder"].stiffness = 0.0
         self.scene.robot.actuators["panda_shoulder"].damping = 0.0
